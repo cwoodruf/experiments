@@ -42,7 +42,7 @@ def start(key):
 	if not valid:
 		login(key)
 		resp = make_response(new_participant(ip))
-		if not save_auth(resp):
+		if not save_auth(request, resp):
 			resp.set_data("ERROR: login save failed\n")
 	else:
 		resp = make_response(new_participant(ip))
