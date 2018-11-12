@@ -1,0 +1,4 @@
+manager
+gevent >= 0.0
+flask >= 0.0
+
