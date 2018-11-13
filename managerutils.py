@@ -112,7 +112,7 @@ def running_filename(ip):
 	return os.path.join(appdir, "running", ip)
 
 def data_filename(ip, part):
-	data_dir = os.path.join(appdir, "data", part, ip)
+	data_dir = os.path.join(appdir, "data", part)
 	try:
 		os.makedirs(data_dir)
 	except:
