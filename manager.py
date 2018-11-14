@@ -85,6 +85,11 @@ def save_data(part):
 	example test:
 	curl -c cookies -b cookies -H 'content-type: text/plain' -XPOST http://localhost:13524/save/1234 -d "hi"
 	"""
+	try:
+		testpart = int(part)
+	except:
+		raise ValueError("participant id was not an integer")
+
 	if not check_auth_params(request):
 		return "ERROR: not logged in\n"
 
