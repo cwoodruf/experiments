@@ -81,9 +81,6 @@ def last_participant():
 def save_data(part):
 	"""
 	saves data for a participant
-	if the participant id we will complain
-	as we could be saving data for some other participant
-	in the case the id is unknown
 	note we don't do any data checking
 	example test:
 	curl -c cookies -b cookies -H 'content-type: text/plain' -XPOST http://localhost:13524/save/1234 -d "hi"
@@ -102,7 +99,7 @@ def save_data(part):
 
 if __name__ == '__main__':
 	try:
-		os.remove(part_lock_file())
+		os.remove(part_lock_filename())
 	except:
 		pass
 

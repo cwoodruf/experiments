@@ -68,19 +68,19 @@ def is_key_valid(key, environ):
 				continue
 	return False
 
-def auth_key_file_name(ip, auth_key):
+def auth_key_filename(ip, auth_key):
 	return os.path.join(appdir,"auth",ip+"-"+auth_key);
 
 def create_auth_params(ip):
 	auth_key = b64encode("".join([random.choice(string.printable) for _ in range(32)]))
-	auth_key_file = auth_key_file_name(ip, auth_key)
+	auth_key_file = auth_key_filename(ip, auth_key)
 	return auth_key, auth_key_file
 
 def check_auth_params(req):
 	if "auth" not in req.cookies: return False
 	auth_key = req.cookies["auth"]
 	ip = addr(req)
-	auth_key_file = auth_key_file_name(ip, auth_key)
+	auth_key_file = auth_key_filename(ip, auth_key)
 	# we should check the age of the authorization but removing the files would also work
 	return os.path.isfile(auth_key_file)
 
