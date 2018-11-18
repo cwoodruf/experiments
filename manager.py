@@ -12,9 +12,10 @@ def default():
 	"""
 	return "CS Lab\n"
 
-@app.route("/login/<key>")
-def login(key):
-	tag = is_key_valid(key, request.environ)
+@app.route("/login/<key>/<nonce>")
+@app.route("/login/<key>",defaults={'nonce': None})
+def login(key, nonce):
+	tag = is_key_valid(key, request.environ, nonce)
 	if not tag:
 		time.sleep(10)
 		return "ERROR: invalid key\n"
@@ -102,7 +103,7 @@ def save_data(part):
 	if request.headers['Content-Type'] == 'text/plain':
 		ip = addr(request)
 		data_file = data_filename(ip, part)
-		with open(data_file, "a") as dh:
+		with open(data_file, "a+") as dh:
 			dh.write(request.data)
 		return "OK: saved {0} bytes to {1}\n".format(len(request.data), data_file)
 
