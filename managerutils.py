@@ -121,7 +121,7 @@ def auth_key_filename(ip, auth_key):
 	typically the key is the file name
 	the file will contain some useful metadata if anything
 	"""
-	return os.path.join(appdir,"auth",ip+"-"+urllib.quote(auth_key));
+	return os.path.join(appdir,"auth",ip+"-"+urllib.quote_plus(auth_key));
 
 def create_auth_params(tag, ip):
 	"""
@@ -130,7 +130,7 @@ def create_auth_params(tag, ip):
 	"""
 	auth_key = b64encode("".join([random.choice(string.printable) for _ in range(32)]))
 	auth_key_file = auth_key_filename(ip, auth_key)
-	with open(auth_key_file, "w") as ah:
+	with open(auth_key_file, "w+") as ah:
 		ah.write(tag)
 	return auth_key, auth_key_file
 

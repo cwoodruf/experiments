@@ -40,15 +40,16 @@ def new_part():
 	resp = make_response(new_participant(tag, ip))
 	return resp
 
-@app.route("/new/<key>")
-def start(key):
+@app.route("/new/<key>/<nonce>")
+@app.route("/new/<key>",defaults={'nonce': None})
+def start(key, nonce):
 	"""
 	if we provide the right key we will get a new participant id
 	"""
 	ip = addr(request)
 	tag = check_auth_params(request)
 	if not tag:
-		tag = is_key_valid(key, request.environ)
+		tag = is_key_valid(key, request.environ, nonce)
 		if not tag:
 			time.sleep(10)
 			return "ERROR: invalid key\n"
