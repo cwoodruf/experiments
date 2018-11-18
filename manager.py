@@ -5,6 +5,10 @@ from managerutils import *
 
 app = Flask('experiments')
 
+@app.route("/favicon.ico")
+def favicon():
+	return ""
+
 @app.route("/")
 def default():
 	"""
@@ -119,6 +123,22 @@ if __name__ == '__main__':
 	# app.run(debug=True,host='0.0.0.0',port=13524)
 
 	# the following can handle much heavier traffic
-	http_server = WSGIServer(('0.0.0.0', 13524), app)
+	ssl_args={
+		'keyfile':os.path.join(appdir, 'certs', 'MyKey.key'), 
+		'certfile':os.path.join(appdir, 'certs', 'MyCertificate.crt')
+	}
+	use_tls = True
+	for k in ['keyfile','certfile']:
+		if os.path.isfile(ssl_args[k]):
+			print ssl_args[k],"exists"
+		else:
+			use_tls = False
+			break
+	if use_tls:
+		print "using TLS"
+		http_server = WSGIServer(('0.0.0.0', 13524), app, **ssl_args)
+	else:
+		print "running without TLS"
+		http_server = WSGIServer(('0.0.0.0', 13524), app)
 	http_server.serve_forever()
 

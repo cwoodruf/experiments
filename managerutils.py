@@ -1,7 +1,7 @@
 """
 The following functions help us manage who gets access to the system
-generating new participant ids - perhaps the hard way
-the authentication process is that the external host runs
+generating new participant ids (perhaps the hard way).
+The authentication process is that the external host runs
 
  /login/<key> or /login/<hashed key>/<nonce>
 
@@ -10,7 +10,7 @@ which consists of:
 
  <key> <tag> <ip address>
 
-pairs. If the key exists in the file for the IP address we make a cookie
+lines. If the key exists in the file for the IP address we make a cookie
 with a random identifier that is used subsequently to authenticate the session.
 The cookies are stored in appdir/auth as files with 
 
@@ -83,6 +83,8 @@ def create_hash(key, nonce, hashlen):
 		return hashlib.sha224(noncekey).hexdigest()
 	elif hashlen == 64:
 		return hashlib.sha256(noncekey).hexdigest()
+	elif hashlen == 128:
+		return hashlib.sha512(noncekey).hexdigest()
 	else: 
 		raise ValueError("unknown hash length")
 
@@ -247,12 +249,12 @@ def new_participant(tag, ip):
 		os.remove(last_part_file)
 		last_part += 1
 	except:
-		last_part = 0 # was: int(time.time() * 1000.0)
+		last_part = 1 # was: int(time.time() * 1000.0)
 
 	with open(last_part_file, "w+") as ph:
 		ph.write(str(last_part))
 
-	with open(part_file, "a") as ph:
+	with open(part_file, "a+") as ph:
 		ph.write("{0}, {1}\n".format(last_part, ip))
 
 	with open(running_file, "w+") as rh:
