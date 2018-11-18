@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 from gevent.pywsgi import WSGIServer
 from flask import Flask, request, render_template, make_response
 from managerutils import *
@@ -14,11 +14,12 @@ def default():
 
 @app.route("/login/<key>")
 def login(key):
-	if not is_key_valid(key, request.environ):
+	tag = is_key_valid(key, request.environ)
+	if not tag:
 		time.sleep(10)
 		return "ERROR: invalid key\n"
 	resp = make_response()
-	if save_auth(request, resp):
+	if save_auth(tag, request, resp):
 		resp.set_data("OK\n")
 	else:
 		resp.set_data("ERROR: could not finish login\n")
@@ -26,10 +27,12 @@ def login(key):
 
 @app.route("/new")
 def new_part():
-	if not check_auth_params(request):
+	tag = check_auth_params(request)
+	if tag == False:
+		time.sleep(10)
 		return "ERROR: not logged in\n";
 	ip = addr(request)
-	resp = make_response(new_participant(ip))
+	resp = make_response(new_participant(tag, ip))
 	return resp
 
 @app.route("/new/<key>")
@@ -38,14 +41,17 @@ def start(key):
 	if we provide the right key we will get a new participant id
 	"""
 	ip = addr(request)
-	valid = check_auth_params(request)
-	if not valid:
-		login(key)
-		resp = make_response(new_participant(ip))
-		if not save_auth(request, resp):
+	tag = check_auth_params(request)
+	if not tag:
+		tag = is_key_valid(key, request.environ)
+		if not tag:
+			time.sleep(10)
+			return "ERROR: invalid key\n"
+		resp = make_response(new_participant(tag, ip))
+		if not save_auth(tag, request, resp):
 			resp.set_data("ERROR: login save failed\n")
 	else:
-		resp = make_response(new_participant(ip))
+		resp = make_response(new_participant(tag, ip))
 	return resp
 
 @app.route("/test")
@@ -53,10 +59,10 @@ def test():
 	"""
 	check to see if we are logged in
 	"""
-	valid = check_auth_params(request)
-	if valid:
-		return request.cookies["auth"]
-	return "not logged in"
+	tag = check_auth_params(request)
+	if not tag:
+		return "not logged in"
+	return "tag {0} auth cookie {1}".format(tag, request.cookies["auth"])
 
 @app.route("/last")
 def last_participant():

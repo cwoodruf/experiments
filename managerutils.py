@@ -60,10 +60,10 @@ def is_key_valid(key, environ):
 	with open(key_file , "r") as kh:
 		for l in kh:
 			try:
-				k, ip = l.split()
+				k, tag, ip = l.split()
 				if k == key:
 					if environ['REMOTE_ADDR'] == ip:
-						return True
+						return tag
 			except:
 				continue
 	return False
@@ -71,9 +71,11 @@ def is_key_valid(key, environ):
 def auth_key_filename(ip, auth_key):
 	return os.path.join(appdir,"auth",ip+"-"+auth_key);
 
-def create_auth_params(ip):
+def create_auth_params(tag, ip):
 	auth_key = b64encode("".join([random.choice(string.printable) for _ in range(32)]))
 	auth_key_file = auth_key_filename(ip, auth_key)
+	with open(auth_key_file, "w") as ah:
+		ah.write(tag)
 	return auth_key, auth_key_file
 
 def check_auth_params(req):
@@ -82,34 +84,36 @@ def check_auth_params(req):
 	ip = addr(req)
 	auth_key_file = auth_key_filename(ip, auth_key)
 	# we should check the age of the authorization but removing the files would also work
-	return os.path.isfile(auth_key_file)
+	if os.path.isfile(auth_key_file):
+		with open(auth_key_file, "r") as ah:
+			tag = ah.read()
+		return tag
+	return False
 
-def save_auth(req, resp):
+def save_auth(tag, req, resp):
 	"""
 	creates an authentication file
 	"""
 	ip = addr(req)
-	auth_key, auth_key_file = create_auth_params(ip)
+	auth_key, auth_key_file = create_auth_params(tag, ip)
 	try:
-		with open(auth_key_file, "w") as ah:
-			ah.write("{0}".format(time.time()));
 		resp.set_cookie("auth", auth_key)
 		return True
 	except:
 		resp.set_cookie("auth","",expires=0)
 	return False
 
-def part_lock_filename():
-	return os.path.join(appdir, "participants.csv.lock")
+def part_lock_filename(ip):
+	return os.path.join(appdir, ip, "participants.csv.lock")
 
-def last_part_filename():
-	return os.path.join(appdir, "last-participant.txt")
+def last_part_filename(tag):
+	return os.path.join(appdir, tag, "last-participant.txt")
 
-def part_filename():
-	return os.path.join(appdir, "participants.csv")
+def part_filename(ip):
+	return os.path.join(appdir, ip, "participants.csv")
 
 def running_filename(ip):
-	return os.path.join(appdir, "running", ip)
+	return os.path.join(appdir, ip, "running")
 
 def data_filename(ip, part):
 	data_dir = os.path.join(appdir, "data", part)
@@ -122,7 +126,7 @@ def data_filename(ip, part):
 	filename = "{0}-{1}-{2}.txt".format(part, int(time.time()*1000.0), ip)
 	return os.path.join(data_dir, filename)
 
-def new_participant(ip):
+def new_participant(tag, ip):
 	"""
 	gets a new participant id in a way where we can have multiple hosts doing the same thing
 	at the same time
@@ -131,9 +135,16 @@ def new_participant(ip):
 	using a lock file to control access
 	"""
 
-	part_file = part_filename()
-	last_part_file = last_part_filename()
-	lock_file = part_lock_filename()
+	for d in [tag, ip]:
+		try:
+			os.makedirs(os.path.join(appdir, d))
+		except Exception as e:
+			if not os.path.isdir(os.path.join(appdir, d)):
+				raise Exception("Error creating directory {0} {1}".format(d, e))
+
+	part_file = part_filename(ip)
+	last_part_file = last_part_filename(tag)
+	lock_file = part_lock_filename(ip)
 	running_file = running_filename(ip)
 	slept = 1
 	lock_key = "{0} {1}".format(ip, random.random())
@@ -158,7 +169,7 @@ def new_participant(ip):
 		os.remove(last_part_file)
 		last_part += 1
 	except:
-		last_part = int(time.time() * 1000.0)
+		last_part = 0 # was: int(time.time() * 1000.0)
 
 	with open(last_part_file, "w+") as ph:
 		ph.write(str(last_part))
