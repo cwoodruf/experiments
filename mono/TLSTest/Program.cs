@@ -16,15 +16,16 @@ namespace TLSTest
 	{
 		public static void Main (string[] args)
 		{
-			Console.Write ("TLS Test\nEnter password: ");
+			Console.WriteLine ("TLS Test");
 			string responsestring = "";
-			string password = Console.ReadLine();
-			Console.Write ("Host (default: localhost): ");
+			Console.Write ("Host (default: https://localhost): ");
 			string host = Console.ReadLine ();
 			if (host == "") {
-				host = "localhost";
+				host = "https://localhost";
 			}
 			Console.WriteLine ("using host " + host);
+			Console.Write("Enter password: ");
+			string password = Console.ReadLine();
 			Random random = new Random ();
 			int nonce = random.Next (int.MaxValue);
 			string hash = "";
@@ -43,8 +44,8 @@ namespace TLSTest
 				}  
 				hash = builder.ToString();  
 			}  
-			string uribase = string.Format("https://{0}:13524/new", host);
-			string uri = string.Format("{0}/{1}/{2}", uribase, hash, nonce);
+			string uribase = string.Format("{0}:13524", host);
+			string uri = string.Format("{0}/new/{1}/{2}", uribase, hash, nonce);
 			using (WebClient client = new WebClient ()) {
 				try
 			{
@@ -59,7 +60,8 @@ namespace TLSTest
 						if (key == "Set-Cookie") cookies = headers[key];
 					}
 					client.Headers.Add(HttpRequestHeader.Cookie, cookies);
-					for (int j=0; j<10; j++) responsestring += "\nanother new participant\n" + client.DownloadString(uribase);
+					responsestring += "\ntest of connection\n" + client.DownloadString(uribase+"/test");
+					for (int j=0; j<10; j++) responsestring += "\nanother new participant\n" + client.DownloadString(uribase+"/new");
 				}
 				catch (Exception e)
 				{

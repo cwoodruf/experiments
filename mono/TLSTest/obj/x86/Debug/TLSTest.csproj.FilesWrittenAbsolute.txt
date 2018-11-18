@@ -3,3 +3,8 @@
 /home/cal/Desktop/cogs/collector/experiments/TLSTest/TLSTest/bin/Debug/TLSTest.exe
 /home/cal/Desktop/cogs/collector/experiments/TLSTest/TLSTest/obj/x86/Debug/TLSTest.exe
 /home/cal/Desktop/cogs/collector/experiments/TLSTest/TLSTest/obj/x86/Debug/TLSTest.exe.mdb
+/home/cal/Desktop/cogs/collector/experiments/mono/TLSTest/obj/x86/Debug/.NETFramework,Version=v4.5.AssemblyAttribute.cs
+/home/cal/Desktop/cogs/collector/experiments/mono/TLSTest/bin/Debug/TLSTest.exe.mdb
+/home/cal/Desktop/cogs/collector/experiments/mono/TLSTest/bin/Debug/TLSTest.exe
+/home/cal/Desktop/cogs/collector/experiments/mono/TLSTest/obj/x86/Debug/TLSTest.exe
+/home/cal/Desktop/cogs/collector/experiments/mono/TLSTest/obj/x86/Debug/TLSTest.exe.mdb
