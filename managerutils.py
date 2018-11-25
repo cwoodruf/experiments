@@ -45,7 +45,7 @@ else:
 if not os.path.isdir(appdir):
 	raise ValueError("your appdir " + appdir + " is not a directory!")
 
-for sub in ["participants","auth","data"]:
+for sub in ["participants","auth","data",os.path.join("data","ips")]:
 	try:
 		os.makedirs(os.path.join(appdir, sub))
 	except Exception as e:
@@ -203,6 +203,13 @@ def part_filename(tag):
 	"""
 	return os.path.join(appdir, "participants", tag, "participants.csv")
 
+def last_data_filename(ip):
+	"""
+	record of the last data file for a given ip address
+	"""
+	data_dir = os.path.join(appdir, "data", "ips")
+	return os.path.join(data_dir, ip)
+
 def data_filename(ip, part):
 	"""
 	create a file name for a data file
@@ -215,7 +222,12 @@ def data_filename(ip, part):
 			raise Exception("{0} is not a directory\n".format(data_dir))
 
 	filename = "{0}-{1}.txt".format(part, ip)
-	return os.path.join(data_dir, filename)
+	fullpath = os.path.join(data_dir, filename)
+
+	with open(last_data_filename(ip), "w+") as df:
+		df.write(fullpath)
+
+	return fullpath
 
 def new_participant(tag, ip):
 	"""
@@ -233,9 +245,9 @@ def new_participant(tag, ip):
 			if not os.path.isdir(os.path.join(appdir, d)):
 				raise Exception("Error creating directory {0} {1}".format(d, e))
 
-	part_file = part_filename(ip)
+	part_file = part_filename(tag)
 	last_part_file = last_part_filename(tag)
-	lock_file = part_lock_filename(ip)
+	lock_file = part_lock_filename(tag)
 	slept = 1
 	lock_key = "{0} {1}".format(ip, random.random())
 	while os.path.isfile(lock_file):
