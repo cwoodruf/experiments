@@ -32,6 +32,8 @@ Change the last-participant.txt file to start participant numbers at a specific 
 from base64 import b64encode
 import os, random, time, string, hashlib, urllib
 
+debug = False;
+
 # sets up our application dir via environment variable
 # we cannot assume that os.getcwd() will be sensible
 # if this is run through an application server
@@ -43,7 +45,7 @@ else:
 if not os.path.isdir(appdir):
 	raise ValueError("your appdir " + appdir + " is not a directory!")
 
-for sub in ["running","auth","data"]:
+for sub in ["participants","auth","data"]:
 	try:
 		os.makedirs(os.path.join(appdir, sub))
 	except Exception as e:
@@ -51,6 +53,27 @@ for sub in ["running","auth","data"]:
 			raise Exception("ERROR: can't create subdirectory {0}: {1}".format(sub,e))
 
 nonce_seen = {}
+
+def key_filename():
+	return os.path.join(appdir,"keys")
+
+def read_keys():
+	"""
+	read the keys file - will have to restart to add keys
+	"""
+	keys = {}
+	with open(key_filename(), "r") as kh:
+		for l in kh:
+			l = l.strip()
+			if l.startswith("#"): continue
+			try:
+				key, tag, ip = l.split(" ")
+				keys[ip] = { "key": key, "tag": tag }
+			except:
+				print "could not read:", l
+	return keys
+		
+keys = read_keys()
 
 def addr(request):
 	if 'REMOTE_ADDR' in request.environ:
@@ -61,10 +84,12 @@ def valid_nonce(nonce):
 	validates the nonce - in this case whether we saw it 
 	we don't keep any evidence between runs of the server
 	"""
+	if nonce is None: return True
 	global nonce_seen
 	if nonce in nonce_seen:
 		 return False
 	nonce_seen[nonce] = True
+	if debug: print "nonce ok"
 	return True
 
 def create_hash(key, nonce, hashlen):
@@ -73,7 +98,6 @@ def create_hash(key, nonce, hashlen):
 	in our case these are pretty simple: hash(nonce + key)
 	"""
 	if nonce is None: return key
-	if not valid_nonce(nonce): return False
 	noncekey = "{0}{1}".format(nonce, key)
 	if hashlen == 32:
 		return hashlib.md5(noncekey).hexdigest()
@@ -94,25 +118,18 @@ def is_key_valid(key, environ, nonce=None):
 	if we are using a hashed key use create_hash to 
 	build a hash for comparison
 	"""
-	key_file = os.path.join(appdir,"keys")
+	key_file = key_filename()
 	if not os.path.isfile(key_file):
 		return False
 	
-	err = ""
-	with open(key_file , "r") as kh:
-		for l in kh:
-			try:
-				k, tag, ip = l.split()
-				ktest = create_hash(k, nonce, len(key))
-				# bad nonce numbers return false
-				if not ktest: 
-					return False
-				err += "hashes {0} test {1}, key {2} ".format(key,ktest,k)
-				if ktest == key:
-					if environ['REMOTE_ADDR'] == ip:
-						return tag
-			except:
-				continue
+	ip = environ['REMOTE_ADDR']
+
+	if ip not in keys: return False
+	if not valid_nonce(nonce): return False
+	ktest = create_hash(keys[ip]['key'], nonce, len(key))
+	if ktest == key:
+		return keys[ip]['tag']
+
 	return False
 
 def auth_key_filename(ip, auth_key):
@@ -164,13 +181,13 @@ def save_auth(tag, req, resp):
 		resp.set_cookie("auth","",expires=0)
 	return False
 
-def part_lock_filename(ip):
+def part_lock_filename(tag):
 	"""
 	lock file for creating a new participant id
 	if this does not get deleted between uses it will
 	block anyone else making a new participant id
 	"""
-	return os.path.join(appdir, ip, "participants.csv.lock")
+	return os.path.join(appdir, "participants", tag, "participants.csv.lock")
 
 def last_part_filename(tag):
 	"""
@@ -178,19 +195,13 @@ def last_part_filename(tag):
 	if we want to arbitrarily start numbering participants
 	we can set the number in this file
 	"""
-	return os.path.join(appdir, tag, "last-participant.txt")
+	return os.path.join(appdir, "participants", tag, "last-participant.txt")
 
-def part_filename(ip):
+def part_filename(tag):
 	"""
 	a list of which participants actually used which host
 	"""
-	return os.path.join(appdir, ip, "participants.csv")
-
-def running_filename(ip):
-	"""
-	file with the most recent participant for a given host
-	"""
-	return os.path.join(appdir, ip, "running")
+	return os.path.join(appdir, "participants", tag, "participants.csv")
 
 def data_filename(ip, part):
 	"""
@@ -203,7 +214,7 @@ def data_filename(ip, part):
 		if not os.path.isdir(data_dir):
 			raise Exception("{0} is not a directory\n".format(data_dir))
 
-	filename = "{0}-{2}.txt".format(part, ip)
+	filename = "{0}-{1}.txt".format(part, ip)
 	return os.path.join(data_dir, filename)
 
 def new_participant(tag, ip):
@@ -225,7 +236,6 @@ def new_participant(tag, ip):
 	part_file = part_filename(ip)
 	last_part_file = last_part_filename(tag)
 	lock_file = part_lock_filename(ip)
-	running_file = running_filename(ip)
 	slept = 1
 	lock_key = "{0} {1}".format(ip, random.random())
 	while os.path.isfile(lock_file):
@@ -256,9 +266,6 @@ def new_participant(tag, ip):
 
 	with open(part_file, "a+") as ph:
 		ph.write("{0}, {1}\n".format(last_part, ip))
-
-	with open(running_file, "w+") as rh:
-		rh.write(str(last_part))
 
 	if os.path.isfile(lock_file): 
 		os.remove(lock_file)

@@ -21,7 +21,6 @@ def default():
 def login(key, nonce):
 	tag = is_key_valid(key, request.environ, nonce)
 	if not tag:
-		time.sleep(10)
 		return "ERROR: invalid key\n"
 	resp = make_response()
 	if save_auth(tag, request, resp):
@@ -34,7 +33,6 @@ def login(key, nonce):
 def new_part():
 	tag = check_auth_params(request)
 	if tag == False:
-		time.sleep(10)
 		return "ERROR: not logged in\n";
 	ip = addr(request)
 	resp = make_response(new_participant(tag, ip))
@@ -51,7 +49,6 @@ def start(key, nonce):
 	if not tag:
 		tag = is_key_valid(key, request.environ, nonce)
 		if not tag:
-			time.sleep(10)
 			return "ERROR: invalid key\n"
 		resp = make_response(new_participant(tag, ip))
 		if not save_auth(tag, request, resp):
