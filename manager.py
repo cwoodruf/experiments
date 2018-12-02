@@ -1,6 +1,7 @@
 #!/usr/bin/python
+import re, json
 from gevent.pywsgi import WSGIServer
-from flask import Flask, request, render_template, make_response
+from flask import Flask, request, render_template, make_response, jsonify
 from managerutils import *
 
 app = Flask('experiments')
@@ -110,6 +111,33 @@ def save_data(part):
 		return "OK: saved {0} bytes to {1}\n".format(len(request.data), data_file)
 
 	return "ERROR: unknown content-type: {0}\n".format(request.headers['Content-Type'])
+
+@app.route("/arrangements/<dims>")
+def print_arrangements(dims):
+	"""
+	this generates a json array of arrays 
+	with the groups of stimuli for each trial
+	we want to have each way of presenting 
+	the color/shape position arrangements
+	be unique to only 1 or 2 participants
+	"""
+	if not check_auth_params(request):
+		return jsonify({"ERROR": "not logged in"})
+
+	if not re.match('^\d+x\d+\w*$', dims):
+		return jsonify({"ERROR": "bad dimensions"})
+
+	dimsfile = "tools/{0}.json".format(dims)
+	if not os.path.isfile(dimsfile):
+		return jsonify({"ERROR": "missing dim data"})
+
+	try:
+		import tools.mapper as m
+		arrangements = m.arrange_from_file(dimsfile)
+	except Exception as e:
+		return jsonify({"ERROR": e})
+
+	return jsonify(arrangements)
 
 if __name__ == '__main__':
 	try:
