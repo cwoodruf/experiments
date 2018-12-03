@@ -166,7 +166,7 @@ def check_auth_params(req):
 	if "auth" not in req.cookies: return False
 	auth_key = req.cookies["auth"]
 	ip = addr(req)
-	auth_key_file = auth_key_filename(ip, auth_key)
+	auth_key_file, auth_pat = auth_key_filename(ip, auth_key)
 	# we should check the age of the authorization but removing the files would also work
 	if os.path.isfile(auth_key_file):
 		with open(auth_key_file, "r") as ah:
