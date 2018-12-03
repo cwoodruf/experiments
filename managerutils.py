@@ -30,6 +30,7 @@ Change the last-participant.txt file to start participant numbers at a specific 
 
 """
 from base64 import b64encode
+from glob import glob
 import os, random, time, string, hashlib, urllib
 
 debug = False;
@@ -138,7 +139,8 @@ def auth_key_filename(ip, auth_key):
 	typically the key is the file name
 	the file will contain some useful metadata if anything
 	"""
-	return os.path.join(appdir,"auth",ip+"-"+urllib.quote_plus(auth_key));
+	authdir = os.path.join(appdir,"auth")
+	return os.path.join(authdir,ip+"-"+urllib.quote_plus(auth_key)), os.path.join(authdir,ip+"*")
 
 def create_auth_params(tag, ip):
 	"""
@@ -146,7 +148,12 @@ def create_auth_params(tag, ip):
 	this is a file that contains some useful session data
 	"""
 	auth_key = b64encode("".join([random.choice(string.printable) for _ in range(32)]))
-	auth_key_file = auth_key_filename(ip, auth_key)
+	auth_key_file, auth_pat = auth_key_filename(ip, auth_key)
+	for a in glob(auth_pat):
+		try:
+			os.unlink(a)
+		except Exception as e:
+			print "cannot unlink",a,"because of",e
 	with open(auth_key_file, "w+") as ah:
 		ah.write(tag)
 	return auth_key, auth_key_file
