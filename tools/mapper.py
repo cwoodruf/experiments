@@ -21,6 +21,7 @@ import argparse
 from itertools import permutations
 
 debug = False
+arrseen = {}
 
 def arrangements(colorshapes):
 	"""
@@ -30,6 +31,7 @@ def arrangements(colorshapes):
 	maps other features to the irrelevant feature in turn
 	maps the position of each color in a 360 degree circle
 	"""
+	global arrseen
 	c = len(colorshapes)
 	positions = permutations([int(i*(360.0/c)) for i in xrange(c)])
 	ordinalities = list(permutations([j for j in xrange(c)]))
@@ -52,6 +54,7 @@ def arrangements(colorshapes):
 			linecount = 0
 			maxline = numpy.prod([len(shapes[i]) for i in xrange(len(shapes))])
 			block = []
+			blockstrings = []
 			while linecount < maxline:
 				if debug: 
 					sys.stdout.write("{0}: ".format(linecount))
@@ -66,11 +69,17 @@ def arrangements(colorshapes):
 						sys.stdout.write(str((category,k,o,colormap[o],shape,position[o])))
 					line.append((colormap[o], shape, position[o]))
 				if debug: print
-				block.append(("category{0}".format(category), line))
+				cat = "category{0}".format(category)
+				blockstrings.append("{0}: {1}".format(cat, line))
+				block.append((cat, line))
 				if k == len(olist)-1 and shapeidx == len(shapes[k])-1:
 					category += 1
 				linecount += 1
 				combinations += 1
+			sortedblock = sorted(blockstrings)
+			if sortedblock.__repr__() in arrseen:
+				continue 
+			arrseen[sortedblock.__repr__()] = True
 			arrangements.append(block)
 	if debug: 
 		print "total combinations",combinations
@@ -92,7 +101,40 @@ def readcolorshapes(inputfile):
 	return colorshapes
 
 def arrange_from_file(inputfile):
-	return arrangements(readcolorshapes(inputfile))
+	"""
+	As Rollin discovered the ordering of the shapes per color
+	can change the category/feature mappings
+	in arrange_from_file we enumerate all permutations of shapes
+	as some features are irrelevant this means that some 
+	of these arrangements are duplicates
+	in arrangements() we check for duplicates and do not include
+	them
+	"""
+	colorshapes = readcolorshapes(inputfile)
+	perms = {}
+	colors = []
+	permcount = 1
+	for color, shapes in colorshapes.iteritems():
+		perms[color] = list(permutations(shapes))
+		permcount *= len(perms[color])
+		colors.append(color)
+
+	prods = [1 for pk in range(len(colorshapes.keys()))]
+	pi = 0
+	for color, shapes in perms.iteritems():
+		for pj in range(pi):
+			prods[pj] *= len(shapes)
+		pi += 1
+
+	a = []
+	for i in xrange(permcount):
+		colorperm = {}
+		for j, color in enumerate(colors):
+			lp = len(perms[color])
+			colorperm[color] = perms[color][(i/prods[j]) % lp]
+		if debug: print colorperm
+		a += arrangements(colorperm)
+	return a
 
 if __name__ == '__main__':
 
