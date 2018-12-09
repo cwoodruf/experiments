@@ -28,7 +28,7 @@ def arrangements(colorshapes):
 	reads a map of color -> list of shapes
 	makes experimental conditions where at least one shape is 
 	an irrelevant feature of any given condition
-	maps other features to the irrelevant feature in turn
+	maps other features to each category in turn
 	maps the position of each color in a 360 degree circle
 	"""
 	global arrseen
