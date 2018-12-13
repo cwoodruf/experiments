@@ -135,6 +135,7 @@ def save_data(part):
 
 	return "ERROR: unknown content-type: {0}\n".format(request.headers['Content-Type'])
 
+amap = {}
 @app.route("/arrangements/<dims>")
 def print_arrangements(dims):
 	"""
@@ -150,13 +151,18 @@ def print_arrangements(dims):
 	if not re.match('^\d+x\d+\w*$', dims):
 		return jsonify({"ERROR": "bad dimensions"})
 
+	global amap
 	dimsfile = "tools/{0}.json".format(dims)
 	if not os.path.isfile(dimsfile):
 		return jsonify({"ERROR": "missing dim data"})
 
 	try:
 		import tools.mapper as m
-		arrangements = m.arrange_from_file(dimsfile)
+		if dimsfile in amap:
+			arrangements = amap[dimsfile]
+		else:
+			arrangements = m.arrange_from_file(dimsfile)
+			amap[dimsfile] = arrangements
 	except Exception as e:
 		return jsonify({"ERROR": e})
 
