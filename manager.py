@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import re, json
 from gevent.pywsgi import WSGIServer
-from flask import Flask, request, render_template, make_response, jsonify
+from flask import Flask, request, render_template, make_response, jsonify, url_for
 from managerutils import *
 
 app = Flask('experiments')
@@ -16,6 +16,29 @@ def default():
 	by default don't do anything
 	"""
 	return "CS Lab\n"
+
+@app.route("/api")
+@app.route("/help")
+def api_helper():
+	"""
+	list all the api calls and their arguments
+	"""
+	import urllib
+	output = []
+	seen = {}
+	for rule in app.url_map.iter_rules():
+		options = {}
+		for arg in rule.arguments:
+			options[arg] = "[{0}]".format(arg)
+		methods = ",".join(rule.methods)
+		url = url_for(rule.endpoint, **options)
+		line = urllib.unquote("{:20s} {}".format(methods, url))
+		if line in seen:
+			continue
+		seen[line] = True
+		output.append(line)
+
+	return "<pre>{0}</pre>".format("\n".join(sorted(output)))
 
 @app.route("/login/<key>/<nonce>")
 @app.route("/login/<key>",defaults={'nonce': None})
@@ -138,6 +161,45 @@ def print_arrangements(dims):
 		return jsonify({"ERROR": e})
 
 	return jsonify(arrangements)
+
+@app.route("/arrangementdims")
+def arrangement_files():
+	"""
+	prints a list of arrangement files
+	that can be used by the /arrangements/<dims> call
+	"""
+	if not check_auth_params(request):
+		return jsonify({"ERROR": "not logged in"})
+
+	dims = []
+	for (dirpath, dirnames, filenames) in os.walk("tools"):
+		for filename in filenames:
+			m = re.match("^(\d+x\d+)\.json", filename)
+			if m is None: continue
+			dims.append(m.group(1))
+
+	return jsonify(dims)
+
+@app.route("/arrangementdims/<dims>")
+def print_arrangementdims(dims):
+	"""
+	dumps one of the dimensions files used by /arrangements/<dims>
+	"""
+	if not check_auth_params(request):
+		return jsonify({"ERROR": "not logged in"})
+
+	if not re.match('^\d+x\d+\w*$', dims):
+		return jsonify({"ERROR": "bad dimensions"})
+
+	dimsfile = "tools/{0}.json".format(dims)
+	if not os.path.isfile(dimsfile):
+		return jsonify({"ERROR": "missing dim data"})
+
+	try:
+		with open(dimsfile, "r") as df:
+			return jsonify(json.load(df))
+	except Exception as e:
+		return jsonify({"ERROR": "cannot read file: {0}".format(e)}) 	
 
 if __name__ == '__main__':
 	try:
