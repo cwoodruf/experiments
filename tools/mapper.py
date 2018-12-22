@@ -54,10 +54,12 @@ def arrangements(colorshapes):
 			linecount = 0
 			maxline = numpy.prod([len(shapes[i]) for i in xrange(len(shapes))])
 			block = []
+			# blockstrings is our ham handed method for finding duplicates
 			blockstrings = []
 			while linecount < maxline:
 				if debug: 
 					sys.stdout.write("{0}: ".format(linecount))
+				cat = "c{0}".format(category)
 				line = []
 				for k in xrange(len(olist)):
 					o = olist[k]
@@ -67,19 +69,29 @@ def arrangements(colorshapes):
 					shape = shapes[k][shapeidx]
 					if debug: 
 						sys.stdout.write(str((category,k,o,colormap[o],shape,position[o])))
-					line.append((colormap[o], shape, position[o]))
+
+					# this is repeating categories but doing this to make it work
+					# more elegantly in both C# and matlab which have very different ideas
+					# about data structures
+					line.append({"cat":cat, "color":colormap[o], "shape":shape, "rotation":position[o]})
+
 				if debug: print
-				cat = "category{0}".format(category)
-				blockstrings.append("{0}: {1}".format(cat, line))
-				block.append((cat, line))
+				blockstrings.append("{0}".format(line))
+				block.append(line)
 				if k == len(olist)-1 and shapeidx == len(shapes[k])-1:
 					category += 1
 				linecount += 1
 				combinations += 1
+
+			# if we sort the strings we can get rid of artificially different groups 
 			sortedblock = sorted(blockstrings)
+
+			# we take advantage of python's ability to make strings out of data 
+			# and use the whole block as a key in a dictionary
 			if sortedblock.__repr__() in arrseen:
 				continue 
 			arrseen[sortedblock.__repr__()] = True
+
 			arrangements.append(block)
 	if debug: 
 		print "total combinations",combinations
@@ -140,7 +152,9 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-d","--debug", help="print debug output", action="store_true")
-	parser.add_argument("inputfile", help="json object mapping colors to shapes should be in form of { \"color 1\":[\"shape 1\",...],...}")
+	parser.add_argument("inputfile", 
+		help="json object mapping colors to shapes "
+			"should be in form of { \"color 1\":[\"shape 1\",...],...}")
 	args = parser.parse_args()
 	debug = args.debug
 
