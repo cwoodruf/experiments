@@ -17,10 +17,10 @@ can be found in. For 3 for example 0 is top, 120 is right and 240 is left (for t
 
 A second dimension is how the shape maps to a category. This is represented by an ordinal
 position for a given group of shapes represented by a color. In the first position the 
-shape is changed the least frequently, only when all the other shapes for a have cycled 
+shape is changed the least frequently, only when all the other shapes for a color have cycled 
 through their permutations. In the second position the color's shape is changed only when
-the next position's colors have been changed and so on. In the last position is a color
-where every shape maps to a category. This color is called "irrelevant" because it 
+the next position's shapes have been cycled through and so on. In the last position is a color
+where every shape always maps to any given category. This color is called "irrelevant" because it 
 does not give any useful information for determining the category based on the color.
 It is possible to have multiple irrelevant features.
 
@@ -38,6 +38,8 @@ c3 1  0  1
 c4 1  1  0
 c4 1  1  1
 
+We can see that, for this arrangement, r0,b0 "means" c1 and that r0,b1 "means" c2 and so on.
+
 Recall that this enumeration does not take into account where the shapes are shown in
 the display. There would be 6 arrangements of each of these groups where r, b and g would
 rotate through being in the top, left and right positions:
@@ -50,7 +52,7 @@ The number of categories depends on the number of combinations of relevant color
 The number of conditions relating to a category relates to the size of the groups.
 We expect groups to always be the same size.
 
-It is assumed that the largest ordinality is always an irrelevant feature
+It is assumed that the largest ordinality (at least) is always an irrelevant feature
 i.e. it will be represented equally in each category.
 The relevant features must uniquely map to each category. The irrelevant
 feature should never map to a specific sub-group of categories.
