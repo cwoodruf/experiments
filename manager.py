@@ -47,10 +47,11 @@ def login(key, nonce):
 	if not tag:
 		return "ERROR: invalid key\n"
 	resp = make_response()
-	if save_auth(tag, request, resp):
-		resp.set_data("OK\n")
-	else:
+	result = save_auth(tag, request, resp)
+	if not result:
 		resp.set_data("ERROR: could not finish login\n")
+	else:
+		resp.set_data(result)
 	return resp
 
 @app.route("/new")
@@ -218,8 +219,10 @@ if __name__ == '__main__':
 
 	# the following can handle much heavier traffic
 	ssl_args={
-		'keyfile':os.path.join(appdir, 'certs', 'MyKey.key'), 
-		'certfile':os.path.join(appdir, 'certs', 'MyCertificate.crt')
+		#'keyfile':os.path.join(appdir, 'certs', 'MyKey.key'), 
+		#'certfile':os.path.join(appdir, 'certs', 'MyCertificate.crt')
+		'keyfile':'/Users/collector/certbot/config/live/cslab.psyc.sfu.ca/privkey.pem',
+		'certfile':'/Users/collector/certbot/config/live/cslab.psyc.sfu.ca/fullchain.pem'
 	}
 	use_tls = True
 	for k in ['keyfile','certfile']:

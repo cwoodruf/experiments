@@ -183,7 +183,7 @@ def save_auth(tag, req, resp):
 	auth_key, auth_key_file = create_auth_params(tag, ip)
 	try:
 		resp.set_cookie("auth", auth_key)
-		return True
+		return auth_key
 	except:
 		resp.set_cookie("auth","",expires=0)
 	return False
