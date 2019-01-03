@@ -44,9 +44,9 @@ def api_helper():
 @app.route("/login/<key>",defaults={'nonce': None})
 def login(key, nonce):
 	tag = is_key_valid(key, request.environ, nonce)
-	if not tag:
-		return "ERROR: invalid key\n"
 	resp = make_response()
+	if not tag:
+		return resp.set_data("ERROR: invalid key\n")
 	result = save_auth(tag, request, resp)
 	if not result:
 		resp.set_data("ERROR: could not finish login\n")
