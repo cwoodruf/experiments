@@ -219,10 +219,10 @@ if __name__ == '__main__':
 
 	# the following can handle much heavier traffic
 	ssl_args={
-		#'keyfile':os.path.join(appdir, 'certs', 'MyKey.key'), 
-		#'certfile':os.path.join(appdir, 'certs', 'MyCertificate.crt')
-		'keyfile':'/Users/collector/certbot/config/live/cslab.psyc.sfu.ca/privkey.pem',
-		'certfile':'/Users/collector/certbot/config/live/cslab.psyc.sfu.ca/fullchain.pem'
+		'keyfile':os.path.join(appdir, 'certs', 'MyKey.key'), 
+		'certfile':os.path.join(appdir, 'certs', 'MyCertificate.crt')
+		#'keyfile':'/Users/collector/certbot/config/live/cslab.psyc.sfu.ca/privkey.pem',
+		#'certfile':'/Users/collector/certbot/config/live/cslab.psyc.sfu.ca/fullchain.pem'
 	}
 	use_tls = True
 	for k in ['keyfile','certfile']:
