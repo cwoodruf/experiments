@@ -102,6 +102,7 @@ def arrangements(colorshapes):
 					sys.stdout.write("{0}: ".format(linecount))
 				cat = "c{0}".format(category)
 				line = []
+				sortedline = []
 				for k in xrange(len(olist)):
 					o = olist[k]
 					lsk = len(shapes[k])
@@ -114,10 +115,14 @@ def arrangements(colorshapes):
 					# this is repeating categories but doing this to make it work
 					# more elegantly in both C# and matlab which have very different ideas
 					# about data structures
-					line.append({"cat":cat, "color":colormap[o], "shape":shape, "rotation":position[o]})
+					rotation = position[o]
+					line.append({"cat":cat, "color":colormap[o], "shape":shape, "rotation":rotation})
+					sortedline.append("{0} {1:<4} {2}".format(cat, rotation, shape))
 
 				if debug: print
-				blockstrings.append("{0}".format(line))
+				sortedline = sorted(sortedline)
+				if debug: print sortedline
+				blockstrings.append("{0}".format(sortedline))
 				block.append(line)
 				if k == len(olist)-1 and shapeidx == len(shapes[k])-1:
 					category += 1
