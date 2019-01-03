@@ -116,8 +116,9 @@ def arrangements(colorshapes):
 					# more elegantly in both C# and matlab which have very different ideas
 					# about data structures
 					rotation = position[o]
-					line.append({"cat":cat, "color":colormap[o], "shape":shape, "rotation":rotation})
-					sortedline.append("{0} {1:<4} {2}".format(cat, rotation, shape))
+					color = colormap[o]
+					line.append({"cat":cat, "color":color, "shape":shape, "rotation":rotation})
+					sortedline.append("{0} {1:<4} {2} {3}".format(cat, rotation, color, shape))
 
 				if debug: print
 				sortedline = sorted(sortedline)
