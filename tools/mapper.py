@@ -118,7 +118,7 @@ def arrangements(colorshapes):
 					rotation = position[o]
 					color = colormap[o]
 					line.append({"cat":cat, "color":color, "shape":shape, "rotation":rotation})
-					sortedline.append("{0} {1:<4} {2} {3}".format(cat, rotation, color, shape))
+					sortedline.append("{0} {1:>3} {2} {3}".format(cat, rotation, color, shape))
 
 				if debug: print
 				sortedline = sorted(sortedline)
