@@ -128,7 +128,7 @@ def is_key_valid(key, environ, nonce=None):
 	if ip not in keys: return False
 	if not valid_nonce(nonce): return False
 	ktest = create_hash(keys[ip]['key'], nonce, len(key))
-	if ktest == key:
+	if ktest == key and 'tag' in keys[ip]:
 		return keys[ip]['tag']
 
 	return False
