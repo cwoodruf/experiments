@@ -57,7 +57,9 @@ def login(key, nonce):
 
 @app.route("/new")
 def new_part():
+	print "checking login"
 	tag = check_auth_params(request)
+	print "tag", tag
 	if tag == False:
 		return "ERROR: not logged in\n";
 	ip = addr(request)
@@ -112,7 +114,7 @@ def last_participant():
 	return "last participant for {0}: {1}, global last: {2}\n".format(
 			ip, running_part, last_part)
  	
-@app.route("/save/<part>", methods=["POST"])
+@app.route("/save/<part>", methods=["POST","PUT"])
 def save_data(part):
 	"""
 	saves data for a participant
@@ -135,7 +137,7 @@ def save_data(part):
 			dh.write(request.data)
 		return "OK: saved {0} bytes to {1}\n".format(len(request.data), data_file)
 
-	return "ERROR: unknown content-type: {0}\n".format(request.headers['Content-Type'])
+	return "ERROR: content-type should be text/plain not {0}\n".format(request.headers['Content-Type'])
 
 amap = {}
 @app.route("/arrangements/<dims>")

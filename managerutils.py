@@ -31,7 +31,7 @@ Change the last-participant.txt file to start participant numbers at a specific 
 """
 from base64 import b64encode
 from glob import glob
-import os, random, time, string, hashlib, urllib
+import os, sys, random, time, string, hashlib, urllib
 
 debug = False;
 
@@ -163,15 +163,16 @@ def check_auth_params(req):
 	search our cookies for the random session key
 	look for the file and read any metadata in the file
 	"""
+	ip = addr(req)
+	# sys.stdout.write("checking {0}\n".format(req.cookies))
 	if "auth" not in req.cookies: return False
 	auth_key = req.cookies["auth"]
-	ip = addr(req)
 	auth_key_file, auth_pat = auth_key_filename(ip, auth_key)
 	# we should check the age of the authorization but removing the files would also work
 	if os.path.isfile(auth_key_file):
 		with open(auth_key_file, "r") as ah:
 			tag = ah.read()
-		return tag
+			return tag
 	return False
 
 def save_auth(tag, req, resp):
@@ -188,13 +189,24 @@ def save_auth(tag, req, resp):
 		resp.set_cookie("auth","",expires=0)
 	return False
 
+def part_dir(tag):
+	"""
+	base directory for saving data for experiments
+	"""
+	d = os.path.join(appdir, "participants", tag)
+	if os.path.isfile(d):
+		raise Exception("{0}: should be a directory!".format(d))
+	if not os.path.isdir(d):
+		os.makedirs(d)
+	return d
+
 def part_lock_filename(tag):
 	"""
 	lock file for creating a new participant id
 	if this does not get deleted between uses it will
 	block anyone else making a new participant id
 	"""
-	return os.path.join(appdir, "participants", tag, "participants.csv.lock")
+	return os.path.join(part_dir(tag), "participants.csv.lock")
 
 def last_part_filename(tag):
 	"""
@@ -202,36 +214,41 @@ def last_part_filename(tag):
 	if we want to arbitrarily start numbering participants
 	we can set the number in this file
 	"""
-	return os.path.join(appdir, "participants", tag, "last-participant.txt")
+	return os.path.join(part_dir(tag), "last-participant.txt")
 
 def part_filename(tag):
 	"""
 	a list of which participants actually used which host
 	"""
-	return os.path.join(appdir, "participants", tag, "participants.csv")
+	return os.path.join(part_dir(tag), "participants.csv")
 
-def last_data_filename(ip):
+def data_dir(tag, ip):
+	data_dir = os.path.join(part_dir(tag), "data", ip)
+	if os.path.isfile(data_dir):
+		raise Exception("data dir {0} is a file!".format(data_dir))
+	if not os.path.isdir(data_dir):
+		os.makedirs(data_dir)
+	return data_dir
+	
+def last_data_filename(ip, tag):
 	"""
 	record of the last data file for a given ip address
 	"""
-	data_dir = os.path.join(appdir, "data", "ips")
-	return os.path.join(data_dir, ip)
+	return os.path.join(data_dir(tag, ip), "{0}-latest.txt".format(ip))
 
 def data_filename(ip, part):
 	"""
 	create a file name for a data file
 	"""
-	data_dir = os.path.join(appdir, "data", part)
-	try:
-		os.makedirs(data_dir)
-	except:
-		if not os.path.isdir(data_dir):
-			raise Exception("{0} is not a directory\n".format(data_dir))
+	if ip not in keys or 'tag' not in keys[ip]:
+		raise Exception("missing data on ip {0}".format(ip))
 
-	filename = "{0}-{1}.txt".format(part, ip)
-	fullpath = os.path.join(data_dir, filename)
+	tag = keys[ip]['tag']
+	filename = "{0}-{1}.txt".format(ip, part)
+	ddir = data_dir(tag, ip)
+	fullpath = os.path.join(ddir, filename)
 
-	with open(last_data_filename(ip), "w+") as df:
+	with open(last_data_filename(ip, tag), "w+") as df:
 		df.write(fullpath)
 
 	return fullpath
@@ -244,14 +261,6 @@ def new_participant(tag, ip):
 	http://chris.improbable.org/2010/12/16/everything-you-never-wanted-to-know-about-file-locking/
 	using a lock file to control access
 	"""
-
-	for d in [tag, ip]:
-		try:
-			os.makedirs(os.path.join(appdir, d))
-		except Exception as e:
-			if not os.path.isdir(os.path.join(appdir, d)):
-				raise Exception("Error creating directory {0} {1}".format(d, e))
-
 	part_file = part_filename(tag)
 	last_part_file = last_part_filename(tag)
 	lock_file = part_lock_filename(tag)
