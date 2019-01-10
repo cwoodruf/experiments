@@ -165,12 +165,12 @@ def print_arrangements(dims):
 		if dimsfile in amap:
 			arrangements = amap[dimsfile]
 		else:
-			arrangements = m.arrange_from_file(dimsfile)
-			amap[dimsfile] = arrangements
+			m.arrange_from_file(dimsfile)
+			amap[dimsfile] = m.arrangements
 	except Exception as e:
 		return jsonify({"ERROR": e})
 
-	return jsonify(arrangements)
+	return jsonify(m.arrangements.values())
 
 @app.route("/arrangementdims")
 def arrangement_files():

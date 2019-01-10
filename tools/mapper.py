@@ -63,8 +63,11 @@ from itertools import permutations
 
 debug = False
 arrseen = {}
+cubesets = {}
+cubesetcount = -1
+arrangements = {}
 
-def arrangements(colorshapes):
+def add_arrangement(colorshapes):
 	"""
 	reads a map of color -> list of shapes
 	makes experimental conditions where at least one shape is 
@@ -73,6 +76,10 @@ def arrangements(colorshapes):
 	maps the position of each color in a 360 degree circle
 	"""
 	global arrseen
+	global arrangements
+	global cubesets
+	global cubesetcount
+
 	c = len(colorshapes)
 	positions = permutations([int(i*(360.0/c)) for i in xrange(c)])
 	ordinalities = list(permutations([j for j in xrange(c)]))
@@ -81,7 +88,6 @@ def arrangements(colorshapes):
 	if debug:
 		print colorshapes
 
-	arrangements = []
 	combinations = 0
 	for position in positions:
 		if debug: 
@@ -97,12 +103,15 @@ def arrangements(colorshapes):
 			block = []
 			# blockstrings is our ham handed method for finding duplicates
 			blockstrings = []
+			# used to identify what group of cubes we are part of
+			cubeset = []
 			while linecount < maxline:
 				if debug: 
 					sys.stdout.write("{0}: ".format(linecount))
 				cat = "c{0}".format(category)
 				line = []
 				sortedline = []
+				cube = []
 				for k in xrange(len(olist)):
 					o = olist[k]
 					lsk = len(shapes[k])
@@ -118,12 +127,15 @@ def arrangements(colorshapes):
 					rotation = position[o]
 					color = colormap[o]
 					line.append({"cat":cat, "color":color, "shape":shape, "rotation":rotation})
+					cube.append("{0:>3} {1} {2}".format(rotation, color, shape))
 					sortedline.append("{0} {1:>3} {2} {3}".format(cat, rotation, color, shape))
 
 				if debug: print
 				sortedline = sorted(sortedline)
+				cube = sorted(cube)
 				if debug: print sortedline
 				blockstrings.append("{0}".format(sortedline))
+				cubeset.append(cube)
 				block.append(line)
 				if k == len(olist)-1 and shapeidx == len(shapes[k])-1:
 					category += 1
@@ -132,18 +144,28 @@ def arrangements(colorshapes):
 
 			# if we sort the strings we can get rid of artificially different groups 
 			sortedblock = sorted(blockstrings)
+			blockkey = sortedblock.__repr__()
 
+			# identify what set of cubes we represent
+			cubeset = sorted(cubeset)
+			cubesetkey = cubeset.__repr__()
+			if cubesetkey not in cubesets:
+				cubesetcount += 1
+				cubesets[cubesetkey] = cubesetcount
+				thiscubeset = cubesetcount
+			else:
+				thiscubeset = cubesets[cubesetkey]
+			
 			# we take advantage of python's ability to make strings out of data 
 			# and use the whole block as a key in a dictionary
-			if sortedblock.__repr__() in arrseen:
+			if blockkey in arrseen:
 				continue 
-			arrseen[sortedblock.__repr__()] = True
-
-			arrangements.append(block)
+			arrseen[blockkey] = True
+			if thiscubeset not in arrangements:
+				arrangements[thiscubeset] = []
+			arrangements[thiscubeset].append(block)
 	if debug: 
 		print "total combinations",combinations
-
-	return arrangements
 
 def readcolorshapes(inputfile):
 	"""
@@ -192,8 +214,7 @@ def arrange_from_file(inputfile):
 			lp = len(perms[color])
 			colorperm[color] = perms[color][(i/prods[j]) % lp]
 		if debug: print colorperm
-		a += arrangements(colorperm)
-	return a
+		add_arrangement(colorperm)
 
 if __name__ == '__main__':
 
@@ -205,7 +226,8 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 	debug = args.debug
 
-	arrangements = arrange_from_file(args.inputfile)
+	arrangements = {}
+	arrange_from_file(args.inputfile)
 
 	print json.dumps(arrangements) # , indent=4)
 
