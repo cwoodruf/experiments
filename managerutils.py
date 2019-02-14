@@ -208,6 +208,14 @@ def part_lock_filename(tag):
 	"""
 	return os.path.join(part_dir(tag), "participants.csv.lock")
 
+def first_part_filename(tag):
+	"""
+	this file tracks the first participant number
+	if we want to arbitrarily start numbering participants
+	we can set the number in this file
+	"""
+	return os.path.join(part_dir(tag), "first-participant.txt")
+
 def last_part_filename(tag):
 	"""
 	this file tracks the last participant number

@@ -34,9 +34,24 @@ def verify(url, comparison, errmsg):
 		raise Exception(errmsg)
 	return "OK"
 
+def dumpMN(cubeset, catmap, r):
+	"""
+	dump out one of the category maps
+	"""
+	a = json.loads(r)
+	# print a[cubeset][catmap]
+	for cube in a[cubeset][catmap]:
+		sides = []
+		cat = ""
+		for side in cube:
+			cat = side['cat']
+			sides.append(side['shape'])
+		print cat, sides
+
 print verify("login/{0}".format(os.environ["EXPMGRPW"]), "^(?!ERROR:)", "Not logged in")
 print verify("test", "^tag \w+ auth \S+", "Login not saved")
 countN(readurl("arrangementdims/3x2"), 3)
 countN(readurl("arrangements/3x2"), 6)
+dumpMN(4,4,readurl("arrangements/3x2"))
 
 

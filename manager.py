@@ -101,19 +101,37 @@ def last_participant():
 	tell us the participant id of the last participant
 	also tells us the globally last participant
 	"""
-	if not check_auth_params(request):
+	tag = check_auth_params(request)
+	if not tag:
 		return "ERROR: not logged in\n";
 	ip = addr(request)
 	try:
-		with open(last_part_filename(), "r") as lh:
+		with open(last_part_filename(tag), "r") as lh:
 			last_part = lh.read()
 		with open(running_filename(ip), "r") as rh:
 			running_part = rh.read()
 	except:
-		return "ERROR reading data files\n"
+		return "ERROR reading last part file\n"
 	return "last participant for {0}: {1}, global last: {2}\n".format(
 			ip, running_part, last_part)
  	
+@app.route("/first")
+def first_participant():
+	"""
+	figure out what the first participant should be for this experiment
+	"""
+	tag = check_auth_params(request)
+	first_part = -1
+	if not tag: 
+		return "ERROR: not logged in\n";
+	try:
+		with open(first_part_filename(tag), "r") as fh:
+			first_part_str = fh.read();
+			first_part = int(first_part_str)
+	except Exception as e:
+		return "ERROR reading first part file\n" 
+	return str(first_part)
+
 @app.route("/save/<part>", methods=["POST","PUT"])
 def save_data(part):
 	"""
