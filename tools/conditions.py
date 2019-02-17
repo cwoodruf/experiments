@@ -1,9 +1,10 @@
 #!/usr/bin/env python
+import sys, copy
 from mapper import arrange_from_file, arrangements
 arrange_from_file("3x2.json")
 
 # tacked on this code to hopefully counterbalance our cubes/answers
-conditions = 28
+conditions = int(sys.argv[1]) 
 print "counterbalancing conditions",conditions
 
 # basic rules: make sure the number of times a cubeset is used is as even as possible
@@ -22,15 +23,20 @@ cubesample = [1 for x in range(conditions)]
 # find out which cubes have which irrelevant feature
 # we only use each of these once
 allsels = []
+bkallsels = []
 for cubeset in range(len(arrangements)):
 	sels = {}
+	bksels = {}
 	for catmap, cats in enumerate(arrangements[cubeset]):
 		# pick the last color of the first cube to get irrelevant feature
 		col = cats[0][2]['color']
 		if col not in sels:
 			sels[col] = []
+			bksels[col] = []
 		sels[col].append(catmap)
+		bksels[col].append(catmap)
 	allsels.append(sels)
+	bkallsels.append(bksels)
 
 # our current condition
 cond = 1
@@ -46,6 +52,8 @@ for i in range(len(cubesample)):
 		col = rgb[cond]
 
 		# which catmap we want
+		if len(allsels[cubeset][col]) == 0: 
+			allsels[cubeset][col] = copy.deepcopy(bkallsels[cubeset][col])
 		selected = cond % len(allsels[cubeset][col])
 		catmap = allsels[cubeset][col][selected]
 
