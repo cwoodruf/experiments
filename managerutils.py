@@ -93,6 +93,14 @@ def valid_nonce(nonce):
 	if debug: print "nonce ok"
 	return True
 
+def remove_nonce(nonce):
+	"""
+	removes a nonce so we don't exhaust memory with bad requests etc.
+	"""
+	global nonce_seen
+	if nonce in nonce_seen:
+		del(nonce_seen[nonce])
+
 def create_hash(key, nonce, hashlen):
 	"""
 	makes a hash using a nonce
@@ -111,7 +119,7 @@ def create_hash(key, nonce, hashlen):
 	elif hashlen == 128:
 		return hashlib.sha512(noncekey).hexdigest()
 	else: 
-		raise ValueError("unknown hash length")
+		return None
 
 def is_key_valid(key, environ, nonce=None):
 	"""
@@ -128,9 +136,10 @@ def is_key_valid(key, environ, nonce=None):
 	if ip not in keys: return False
 	if not valid_nonce(nonce): return False
 	ktest = create_hash(keys[ip]['key'], nonce, len(key))
-	if ktest == key and 'tag' in keys[ip]:
+	if ktest is not None and ktest == key and 'tag' in keys[ip]:
 		return keys[ip]['tag']
 
+	remove_nonce(nonce)
 	return False
 
 def auth_key_filename(ip, auth_key):
