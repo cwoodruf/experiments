@@ -8,7 +8,7 @@ fi
 outfile=blocks${COND}triallvl.csv
 
 # cube features are in the order of up right forward
-echo Subject,TrialID,Cubeset,Catmap,UpValue,RightValue,ForwardValue,StartTime,AnswerTime,RowID > $outfile
+echo Subject,TrialID,Cubeset,Catmap,UpValue,RightValue,ForwardValue,SelectedCategory,Category,StartTime,AnswerTime,RowID > $outfile
 
 for f in [23]*.txt 
 do 
