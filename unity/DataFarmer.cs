@@ -8,22 +8,45 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using UnityEngine;
 
-public class DataFarmer 
+/**
+* Purpose of this class is to handle IO operations and 
+* basic application set up
+* It is designed to connect to an external experiments
+* manager via a url defined in a config file
+* (see GetConfig below)
+* In normal usage it can be used to collect data and
+* save it when a threshold has been reached
+* The data is stored as a list of objects the classes 
+* for which implement the IDataFarmerObject interface
+* This class also does other things such as load stimuli 
+* definitions for counterbalancing and implements
+* other wrappers of experiments manager web API calls.
+* TODO: possibly split up some functionality
+* TODO: make the interface more general 
+* (e.g. generalize the Cubes related methods)
+*/
+public class DataFarmer
 {
-
-    // 
+    // for each experiment run we only make one instance of this 
     private static DataFarmer me = null;
 
     // buffer for incoming data
-    private List<IDataFarmerObject> data = new List<IDataFarmerObject>();
+    private List<IDataFarmerObject> data;
 
-    // SET BUFFER THRESHHOLD WHICH, WHEN MET, WILL STREAM DATA CHUNKS OUTWARD
+    // SET BUFFER THRESHOLD WHICH, WHEN MET, WILL STREAM DATA CHUNKS OUTWARD
     // this can be overridden from the config file
     private static int BUFFER_FULL = 10;
+    private bool ForceSave = false;
+    private Mutex SaveMutex;
+    private AutoResetEvent Wait;
+    private bool Running = false;
+    private Thread SaveThread;
     private static int SAVE_RETRIES = 5;
 
     // Webclient needed to save data externally
     private WebClient webClient;
+    enum WebClientState { NOT_CONNECTED, CONNECTED, FAILED }
+    private WebClientState webClientValid = WebClientState.NOT_CONNECTED;
 
     // authorization code needed to talk to web client
     private string auth;
@@ -34,7 +57,7 @@ public class DataFarmer
 
     // for GetConfig below
     public static int TRIALS = -1; // if TRIALS is <= 0 go on forever
-    private static string CONFIG_FILE;
+    public static string CONFIG_FILE;
     private static string REMOTE_URI;
     private static string REMOTE_SECRET;
     private static string ARRANGEMENTS_FILE; // where to store maps of categories to cubes
@@ -63,15 +86,49 @@ public class DataFarmer
         Setup();
     }
 
+    ~DataFarmer()
+    {
+        ForceSave = true;
+        Wait.Set();
+        Running = false;
+        SaveThread.Interrupt();
+    }
+
     // logs in to external server and creates our identity for this run ...
     public void Setup()
     {
+        data = new List<IDataFarmerObject>();
+        SaveMutex = new Mutex();
+        Wait = new AutoResetEvent(false);
+
         GetConfig();
         Login();
         LoadCubes();
+        // Thanks to Thomas for thinking of this
+        // for situations where there are multiple experiments happening at
+        // the same time the lag from the http connection calls is affecting
+        // the performance of the rendering engine
+        // running the save operation in the background fixes this problem
+        // in this case we are using a single thread to save and when we 
+        // add items to the data list we signal to the SaveCallback to try and 
+        // save the items
+        SaveThread = new Thread(new ThreadStart(SaveCallback));
+        Running = true;
+        try
+        {
+            SaveThread.Start();
+        }
+        catch (ThreadAbortException e)
+        {
+            Debug.LogError("DataFarmer SaveThread abort: " + e.Message);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("DataFarmer SaveThread exception: " + e.Message);
+        }
     }
 
-    private static string GetDesktop()
+    public static string GetDesktop()
     {
         return Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
     }
@@ -121,7 +178,8 @@ public class DataFarmer
                         try
                         {
                             int.TryParse(value, out TRIALS);
-                        } catch (Exception e)
+                        }
+                        catch (Exception e)
                         {
                             TRIALS = -1;
                         }
@@ -130,7 +188,8 @@ public class DataFarmer
                         try
                         {
                             long.TryParse(value, out FIRSTPARTICIPANT);
-                        } catch (Exception e)
+                        }
+                        catch (Exception e)
                         {
                             FIRSTPARTICIPANT = -1;
                         }
@@ -222,59 +281,83 @@ public class DataFarmer
 
     // Saving the Data Chunk to File and remotely
     // on error does a lot of complaining and will throw an exception if no data can be saved
-    public void Save(DataFarmerObject thingToSave, bool saveme=false)
+    public void Save(DataFarmerObject thingToSave, bool savenow = false)
     {
-
         // Since this section is called every frame, the data.add line will continue 
         // to receive a new line of data on every iteration until the BUFFER is reached
+        ForceSave = savenow;
+        SaveMutex.WaitOne();
         data.Add(thingToSave);
+        SaveMutex.ReleaseMutex();
+        // signal to SaveCallback that we got some data
+        Wait.Set();
+    }
 
-        if (saveme || data.Count == BUFFER_FULL)
+    private void SaveCallback()
+    {
+        while (Running)
         {
-            bool anythingsaved = false;
-            // Serialize data structure
-            string dataString = "";
-            foreach (IDataFarmerObject o in data)
+            try
             {
-                dataString += o.Serialize();
-            }
-
-            // update csv log on file path
-            if (LOCAL_LOG != null)
-            {
-                try
+                // without this unity will keel over as it runs the infinite loop into the ground
+                Wait.WaitOne();
+                if (ForceSave || data.Count >= BUFFER_FULL)
                 {
-                    Debug.Log("Data Moving to File!");
-                    using (StreamWriter file = File.AppendText(LOCAL_LOG))
+                    // Serialize data structure
+                    SaveMutex.WaitOne();
+                    string dataString = "";
+                    foreach (IDataFarmerObject o in data)
                     {
-                        file.Write(dataString);
-                        anythingsaved = true;
+                        dataString += o.Serialize();
                     }
-                }
-                catch (Exception e)
-                {
-                    Debug.Log(string.Format("failed to write to log: {0} {1}", e, e.Message));
-                }
-            }
+                    data.Clear();
+                    SaveMutex.ReleaseMutex();
 
-            if (SaveRemotely(dataString))
+                    bool retLoc = SaveLocally(dataString);
+                    bool retRem = SaveRemotely(dataString);
+                    if (!(retLoc || retRem))
+                    {
+                        Debug.Log("ERROR: NO DATA COULD BE SAVED!");
+                    }
+                    ForceSave = false;
+                }
+            } 
+            catch (ThreadInterruptedException e)
             {
-                anythingsaved = true;
-            }
-
-            data.Clear();
-            if (!anythingsaved)
-            {
-                Debug.Log("ERROR: NO DATA COULD BE SAVED!");
-                throw new Exception("no data can be saved");
+                Debug.Log("Exiting SaveCallback");
+                break;
             }
         }
+    }
+
+    private bool SaveLocally(string dataString)
+    {
+        // update csv log on file path
+        if (LOCAL_LOG != null)
+        {
+            try
+            {
+                Debug.Log("Data Moving to File!");
+                using (StreamWriter file = File.AppendText(LOCAL_LOG))
+                {
+                    file.Write(dataString);
+                }
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.Log(string.Format("failed to write to log: {0} {1}", e, e.Message));
+            }
+        }
+        return false;
+
     }
 
     // send remote data if we can
     private bool SaveRemotely(string dataString)
     {
         bool saved = false;
+        if (webClientValid == WebClientState.FAILED) return false;
         try
         {
             if (!loggedin) Login();
@@ -290,6 +373,7 @@ public class DataFarmer
                     saved = false;
                     string uri = string.Format("{0}/save/{1}", REMOTE_URI, participant);
                     string result = PostRequest(uri, dataString);
+                    if (result == null) break;
                     Debug.Log("save result: " + result);
                     if (result.StartsWith("OK"))
                     {
@@ -338,7 +422,18 @@ public class DataFarmer
         }
         using (webClient = GetNewWebClient())
         {
-            string content = webClient.DownloadString(makeNonce().Uri(string.Format("{0}/login", REMOTE_URI)));
+            string content = null;
+            try
+            {
+                content = webClient.DownloadString(makeNonce().Uri(string.Format("{0}/login", REMOTE_URI)));
+                webClientValid = WebClientState.CONNECTED;
+            }
+            catch (Exception e)
+            {
+                Debug.Log("Login failed: " + e);
+                webClientValid = WebClientState.FAILED;
+                return false;
+            }
             Debug.Log("login result: " + content);
             if (!content.Contains("ERROR:"))
             {
@@ -366,12 +461,21 @@ public class DataFarmer
     private string PostRequest(string uri, string dataString)
     {
         string result = null;
+        if (webClientValid == WebClientState.FAILED) return null;
         using (webClient = GetNewWebClient())
         {
-            // if this auth cookie is invalid nothing will work ...
-            webClient.Headers.Add("Content-Type", "text/plain");
-            webClient.Headers.Add("Cookie", auth);
-            result = webClient.UploadString(uri, "POST", dataString);
+            try
+            {
+                // if this auth cookie is invalid nothing will work ...
+                webClient.Headers.Add("Content-Type", "text/plain");
+                webClient.Headers.Add("Cookie", auth);
+                result = webClient.UploadString(uri, "POST", dataString);
+            }
+            catch (Exception e)
+            {
+                Debug.Log("GET failed: " + e.Message);
+                webClientValid = WebClientState.FAILED;
+            }
         }
         webClient.Dispose();
         return result;
@@ -381,11 +485,21 @@ public class DataFarmer
     private string GetRequest(string uri)
     {
         string result = null;
+        if (webClientValid == WebClientState.FAILED) return null;
         using (webClient = GetNewWebClient())
         {
-            webClient.Headers.Add("Content-Type", "text/plain");
-            webClient.Headers.Add("Cookie", auth);
-            result = webClient.DownloadString(uri);
+            try
+            {
+                webClient.Headers.Add("Content-Type", "text/plain");
+                webClient.Headers.Add("Cookie", auth);
+                result = webClient.DownloadString(uri);
+                webClientValid = WebClientState.CONNECTED;
+            }
+            catch (Exception e)
+            {
+                Debug.Log("POST failed: " + e.Message);
+                webClientValid = WebClientState.FAILED;
+            }
         }
         webClient.Dispose();
         return result;
@@ -442,3 +556,4 @@ public class DataFarmer
         }
     }
 }
+

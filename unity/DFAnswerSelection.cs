@@ -4,7 +4,6 @@ using System;
 public class DFAnswerSelection: DataFarmerObject
 {
     private string chosenAnswer;
-    private ParticipantStatus ps = ParticipantStatus.GetInstance();
     public static readonly string START = "trial start";
 
     public DFAnswerSelection() : base("answer")

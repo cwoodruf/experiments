@@ -9,12 +9,13 @@ public class DataFarmerObject : IDataFarmerObject
     protected ParticipantStatus.Condition condition;
     protected string category;
     protected CubeTuple cube;
+    protected ParticipantStatus ps;
 
     public DataFarmerObject(string tag)
     {
         this.tag = tag;
         this.timestamp = Time.time;
-        ParticipantStatus ps = ParticipantStatus.GetInstance();
+        ps = ParticipantStatus.GetInstance();
         this.participant = ps.GetParticipant();
         this.trial = ps.GetTrial();
         this.condition = ps.GetCondition();

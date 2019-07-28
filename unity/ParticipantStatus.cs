@@ -44,10 +44,11 @@ public class ParticipantStatus
     private Dictionary<string, KeyValuePair<float, float>> displacements;
 
     // we assume only one participant per run hence we can instantiate ourselves here
-    private static ParticipantStatus ps = new ParticipantStatus();
+    private static ParticipantStatus ps = null;
 
     public static ParticipantStatus GetInstance()
     {
+        if (ps == null) ps = new ParticipantStatus();
         return ps;
     }
 

@@ -12,11 +12,12 @@ public class FindClosestSide : MonoBehaviour {
     public bool detailedLogging = false;
     public Text angleDisplay;
     public int measurements = 0;
-    private ParticipantStatus ps = ParticipantStatus.GetInstance();
+    private ParticipantStatus ps;
     private long trial;
 
     // Use this for initialization
     void Start () {
+        ps = ParticipantStatus.GetInstance();
         player = GameObject.FindGameObjectWithTag("MainCamera"); // this responds to head movements, Player doesn't
         Debug.Log("Player", player);
         previousSide = -1;
