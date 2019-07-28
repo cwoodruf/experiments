@@ -56,4 +56,3 @@ print verify("login/{0}".format(os.environ["EXPMGRPW"]), "^(?!ERROR:)", "Not log
 print verify("test", "^tag \w+ auth \S+", "Login not saved")
 countN(readurl("arrangementdims/3x2"), 3)
 countN(readurl("arrangements/3x2"), 6)
-
