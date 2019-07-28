@@ -11,3 +11,6 @@ These scripts are tools for managing experimental conditions.
 
 * mappertest.py - command line tool to exercise the mapper.py script
 
+* conditions.py - command line tool to generate a list of evenly distributed
+  conditions for the VR experiment.
+
