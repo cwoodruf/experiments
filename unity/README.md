@@ -5,14 +5,15 @@ defined in manager.py. The main interface point is the *DataFarmer* class which,
 the settings in its config file, attempts to connect to an external experiments server which
 it then uses to get the experimental conditions for the experiment it is running. 
 
+We use an instance of a *DataFarmerObject* to save data via DataFarmer. DataFarmer 
+keeps a list of these objects of configurable size. When the size threshold is reached
+DataFarmer tries to simultaneously save the list locally to a log and remotely via the REST api.
+The computational cost of this operation requires that it be done in a separate thread. 
+
 The *FindClosestSide* class is an example of how to identify a fixation for a stimulus with sides.
 In the case of the VR experiment the actual features were presented in wells in the sides of the
 cube making the participant turn the cube more to find the feature. The features in this experiment
 were identical on both sides of each axis hence the "flattening" of the angle measure.
-
-This class uses an instance of a *DataFarmerObject* to save data via DataFarmer. DataFarmer 
-keeps a list of these objects and tries to simultaneously save them locally and remotely.
-The computational cost of this operation requires that it be done in a separate thread. 
 
 * DataFarmer.cs - class that manages saving data locally and remotely
 
