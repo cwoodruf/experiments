@@ -1,4 +1,11 @@
 #!/bin/sh
+# Author: Cal Woodruff
+# Purpose: reads data from the on host logs and the experiments manager REST logs and 
+#          coalesces the data into an ordered csv log for each participant
+#          currently this data is in the ~/collector/Desktop/Participant_{VR|3d}/clean/ directories
+# Reviewed:
+# Verified:
+
 COND=$1
 if [ "x$COND" = "x" ]
 then

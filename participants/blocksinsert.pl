@@ -1,9 +1,15 @@
 #!/usr/bin/perl
-# purpose of this script is to insert blocks data from 2019 Spring into various tables in the Experiments db
+# Author: Cal Woodruff
+# Purpose: insert file based data from VR and 3d conditions into tables in the Experiments db
+# Reviewed: 
+# Verified:
+
 use DB::Experiments;
 use strict;
 my $db = DB::Experiments::conn();
 my $basedir = "/Users/collector/Desktop";
+
+# map of what file goes into what table
 my %file2tb = (
 	"Participants_VR/clean/blocksvrExplvl.csv" => "vrTestExpLvlVR",
 	"Participants_VR/clean/blocksvrTriallvl-with-onsets.csv" => "vrTestTrialLvlVR",
@@ -12,6 +18,9 @@ my %file2tb = (
 	"Participants_3d/clean/blocks3dTriallvl-with-onsets.csv" => "vrTestTrialLvl3d",
 	"Participants_3d/clean/blocks3dFixlvl.csv" => "vrTestFixLvl3d",
 );
+
+# read every file line by line and update the corresponding table, 
+# replacing the equivalent line if it exists
 
 foreach my $fn (sort keys %file2tb) {
 	open IN, "$basedir/$fn" or die "$basedir/$fn: $!";

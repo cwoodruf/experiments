@@ -1,10 +1,16 @@
 #!/usr/bin/perl
+# Author: Cal Woodruff
+#
 # purpose of this script is to use phase starts per trial from a fixation table
-# and interpolate them into a trial table
+# and interpolate them into a trial table, this was a test script not used in the 
+# analysis
+#
+# Reviewed:
+# Verified:
 
-# get file names
+# This uses the fixation csv output file instead of the raw data
 my $fixtbf = shift;
-my $trialtbf = shift;
+
 open FIX, "< $fixtbf" or die "$fixtbf: $!";
 my %phases;
 while (my $_ = <FIX>) {
@@ -13,5 +19,7 @@ while (my $_ = <FIX>) {
 		$phases{$subj}{$tr}{"p".($ph-1)."Onset"} = $st;
 	}
 }
+
+# outputs phase data
 use Data::Dumper; $Data::Dumper::Sortkeys = 1; print Dumper(\%phases);
 
