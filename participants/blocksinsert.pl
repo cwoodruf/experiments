@@ -12,10 +12,10 @@ my $basedir = "/Users/collector/Desktop";
 # map of what file goes into what table
 my %file2tb = (
 	"Participants_VR/clean/blocksvrExplvl.csv" => "vrTestExpLvlVR",
-	"Participants_VR/clean/blocksvrTriallvl-with-onsets.csv" => "vrTestTrialLvlVR",
+	"Participants_VR/clean/blocksvrTriallvl.csv" => "vrTestTrialLvlVR",
 	"Participants_VR/clean/blocksvrFixlvl.csv" => "vrTestFixLvlVR",
 	"Participants_3d/clean/blocks3dExplvl.csv" => "vrTestExpLvl3d",
-	"Participants_3d/clean/blocks3dTriallvl-with-onsets.csv" => "vrTestTrialLvl3d",
+	"Participants_3d/clean/blocks3dTriallvl.csv" => "vrTestTrialLvl3d",
 	"Participants_3d/clean/blocks3dFixlvl.csv" => "vrTestFixLvl3d",
 );
 

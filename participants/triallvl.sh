@@ -1,8 +1,12 @@
 #!/bin/sh
 # Author: Cal Woodruff
 # Purpose: creates the triallvl table by reading the subject data and extracting answers
-#          onset data is 
-COND=$1
+#          onset data is taken from an separate module created with the onsets.sh script
+# Reviewed:
+# Verified:
+
+export PERL5LIB="$HOME/Desktop/experiments/participants:$PERL5LIB"
+export COND=$1
 if [ "x$COND" = "x" ]
 then
 	echo "need a condition - either vr or 3d"
@@ -17,7 +21,7 @@ echo Subject,TrialID,Feature1Value,Feature2Value,Feature3Value,Category,Response
 for f in [23]*.txt 
 do 
 	grep -h ^answer, $f | sort | \
-	perl -ne '
+	perl -MOnsets -ne '
 	chomp; 
 	s/^answer,//; 
 	# pull participant, time stamp, conditon, cube features and answer
@@ -44,10 +48,14 @@ do
 
 		# this builds the actual csv line of data to match the header line above
 		# note the placeholders for the onsets - these are filled in later with the onsets.sh script
-		$f{$5} = "$1,$5,$fval{$6},$fval{$7},$fval{$8},$9,$10,".($9 eq $10?1:0).",p1Onset,p2Onset,p3Onset,p4Onset,NULL";
+		$p2Onset = $Onsets::onsets{$ENV{COND}}{$1}{$5}{p2} || "NULL";
+		$p4Onset = $Onsets::onsets{$ENV{COND}}{$1}{$5}{p4} || "NULL";
+		$f{$5} = "$1,$5,$fval{$6},$fval{$7},$fval{$8},$9,$10,".($9 eq $10?1:0).",NULL,$p2Onset,NULL,$p4Onset,NULL";
 	} 
 	END { 
 		foreach $t (sort { $a <=> $b } keys %f) { print $f{$t},"\n" if $t > 0 } 
 	}'
 done | grep '^[23]0' | perl -pe 's/$/,$./' >> $outfile
-
+# selects only lines starting with a valid subject id and
+# adds the RowID to the end of the line 
+# before saving to the outfile

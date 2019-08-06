@@ -1,7 +1,18 @@
 #!/bin/bash
 # Author: Cal Woodruff
-# Purpose:
-# grab fixation data from raw game logs
+# Purpose: grab fixation data from raw game logs
+#          the logs are all csv text and the first field describes what the measure is
+#          in this case we look for lines starting "fixation," and parse them using
+#          regular expressions to extract useful data
+#          in the raw experiment data each fixation on a side is followed by a fixation
+#          where there is "no side". We use this to time divide the fixations
+#          In order to determine what phase of the trial the fixation happens
+#          a separately created Onsets.pm module was created 
+#          Onsets uses the data from other types of records to determine at what time
+#          the trial started, when an answer was provided and the length of feedback
+#          
+# Reviewed:
+# Verified:
 
 export COND=$1
 if [ "x$COND" = "x" ]
@@ -23,15 +34,11 @@ perl   -MOnsets -MIrrelevantMap -MPOSIX -ne '
 # this function uses previously recorded Onsets information to determine the phase
 sub getphase {
 	my ($p,$tr,$ts) = @_;
-	die "missing phase info for $p $tr!" unless defined $times{$ENV{COND}}{$p}{$tr};
-	my $pcount = 1;
-	# find largest phase for the time stamp
-	foreach my $ph (sort values %{$times{$ENV{COND}}{$p}{$tr}}) {
-		if ($ts <= $ph) {
-			return $pcount;
-		}
-		$pcount++;
-	}
+	die "missing phase info for $ENV{COND} $p $tr!" unless defined $Onsets::onsets{$ENV{COND}}{$p}{$tr};
+
+	# if p4Onset doesnt exist we default to phase 2 
+	return 4 if $Onsets::onsets{$ENV{COND}}{$p}{$tr}{p4} < $ts; 
+	return 2;
 }
 	
 BEGIN { 
@@ -69,7 +76,7 @@ if (m#fixation,(\d+),(\d+[^,]*),(cubeset=\d+/catmap=\d+),(\d+),(cat:[^,]*).*,(up
 
 } elsif (/fixation,(\d+),(\d+[^,]*),.*?,(\d+),/) { 
 
-	# in we have "no side" for this subject then calculate the duration 
+	# if we have "no side" for this subject then calculate the duration 
 	# we assume this will be after the original fixation
 	# the fixations are always ordered by one with a side and one with "no side" 
 	# "no side" indicates the fixation is over
