@@ -1,4 +1,9 @@
 #!/bin/sh
+# Author: Cal
+# Purpose: older test script not used in analysis
+#          grabs raw data and counts the number of lines
+#          prints statistics about this
+
 cd /Users/collector/Desktop/experiments/participants
 wc -l {vr,3d}/data/*/*.txt | \
 grep -v 505.txt | \

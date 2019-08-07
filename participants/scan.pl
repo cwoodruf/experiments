@@ -1,4 +1,7 @@
 #!/usr/bin/perl -n 
+# Author: Cal
+# Purpose: test script not used in the analysis to look at raw participant data
+
 # run the script like this:
 # ./scan.pl [data file]
 if ($started and !defined $right and /^fixation/) { 
