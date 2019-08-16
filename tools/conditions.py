@@ -10,7 +10,7 @@ print "counterbalancing conditions",conditions
 # basic rules: make sure the number of times a cubeset is used is as even as possible
 # next make sure the irrelevant feature is equally each color
 
-# this "random" arrangement works out to evenly distributed irrelevant features
+# this "random" arrangement works out to evenly distribute irrelevant features
 from random import Random
 rand = Random(11)
 colrange = conditions / 3
