@@ -9,9 +9,9 @@ less quickly than the later elements.
 import json, sys, os, numpy
 import argparse
 import logging
-from itertools import permutations
+from itertools import permutations, product
 
-class Arrangements(object):
+class StimuliGroups(object):
 
     def __init__(self, colorshapes):
         """
@@ -20,146 +20,24 @@ class Arrangements(object):
         which are what this class builds
         """
         self.colorshapes = colorshapes
-        self.arrseen = {}
-        self.cubesets = {}
-        self.cubesetcount = -1
-        self.arrangements = {}
 
-    def add_arrangement(self):
+    def _valuepermutations(self):
         """
-        builds a group of maps of a cohesive set of dimensions in a specific state
-        because these dimensions relate to a visual stimulus arrangements of 
-        the dimensions in space are considered distinct. For a specific spatial arrangement
-        the set of states of each dimension is mapped to a set of categories.
-
-        TODO: These sets of mappings are really static so we could save time by generating this
-        once and then changing the location of each dimension.
-
-        see below in arrange_from_file, we make multiple passes
-        through the same data hence we rerun add_arrangements
-        and incrementally add to arrangements
-        arrseen, cubesets and cubesetcount are for tracking
-        where we are in processing
-        arrangements is what we eventually print out
+        expands the given map of colorshapes to provide 
+        permutations of the shape values for each color axis
         """
+        valuepermutations = {}
+        # in a typical experiment an axis might be represented by a color
+        # and the values might be represented by shapes
+        for axis, values in self.colorshapes.iteritems():
+            # push the axis value down for later reference when producing output
+            valuetuple = [(axis, v) for v in values]
+            valuepermutations[axis] = []
+            # we are gathering permutations of the axis values as they can map uniquely to categories
+            for valueperm in permutations(valuetuple):
+                valuepermutations[axis].append(valueperm)
 
-        positions = permutations([int(i*(360.0/len(self.colorshapes))) for i in xrange(len(self.colorshapes))])
-        ordinalities = list(permutations([j for j in xrange(len(self.colorshapes))]))
-        colormap = self.colorshapes.keys()
-
-        logging.debug(self.colorshapes)
-
-        # combinations is used for debug output
-        combinations = 0
-
-        # positions is an array of [[120, 240, 0] ... representing the orientation of what the viewer sees
-        # for each of these we then create a series of category mappings
-        for position in positions:
-            logging.debug("new position set %s", str(position))
-
-            for colorperm in ordinalities:
-                # get the shapes for all colorperm as a list of lists ...
-                shapes = [self.colorshapes[colormap[colorperm[i]]] for i in xrange(len(colorperm))]
-
-                logging.debug("new ordinality list: shapes %s" % shapes)
-
-                category = 0
-                
-                cubecount = 0
-                allshapes = numpy.prod([len(shapes[i]) for i in xrange(len(shapes))])
-
-                block = []
-                
-                blockstrings = []
-
-                cubeset = []
-                while cubecount < allshapes:
-
-                    # category string used in the output "c0, c1..."
-                    cat = "c{0}".format(category)
-                    # a set of axes that define a "cube" this is a list of dicts 
-                    cubeline = []
-                    # easy to sort version of cubeline which is just the values in order
-                    sortedcubeline = []
-                    # sortable string representation of a cube
-                    cube = []
-                    for colorpermpos in xrange(len(colorperm)):
-                        lsk = len(shapes[colorpermpos])
-                        divisor = int(numpy.prod([len(shapes[l]) for l in xrange((colorpermpos+(lsk%2)),lsk)]))
-                        shapeidx = (cubecount / divisor) % lsk
-                        shape = shapes[colorpermpos][shapeidx]
-                        logging.debug(
-                            "colorpermpos %s lsk %s divisor %s shapeidx %s shape %s", 
-                            colorpermpos, lsk, divisor, shapeidx, shape
-                        )
-
-                        # o is the index into the various arrays we are using to produce an axis
-                        o = colorperm[colorpermpos]
-
-                        # this is repeating categories but doing this to make it work
-                        # more elegantly in both C# and matlab which have very different ideas
-                        # about data structures
-                        rotation = position[o]
-                        color = colormap[o]
-
-                        # this line is what we return when we send the JSON data out
-                        # note that the category "cat" is placed here to make using the JSON tools in matlab and C# work 
-                        cubeline.append({"cat":cat, "color":color, "shape":shape, "rotation":rotation})
-
-                        # these are sortable strings for tracking duplicates
-                        cube.append("{0:>3} {1} {2}".format(rotation, color, shape))
-                        sortedcubeline.append("{0} {1:>3} {2} {3}".format(cat, rotation, color, shape))
-
-                    # this is where we determine if we've seen this cube/category mapping before
-                    # and either add it to the output data or discard it.
-                    sortedline = sorted(sortedcubeline)
-                    cube = sorted(cube)
-
-                    logging.debug(sortedline)
-
-                    blockstrings.append("{0}".format(sortedline))
-                    cubeset.append(cube)
-                    block.append(cubeline)
-
-                    # change the category when we are at the last color and shape
-                    if colorpermpos == len(colorperm)-1 and shapeidx == len(shapes[colorpermpos])-1:
-                        category += 1
-
-                    # for 3 colors and 2 shapes we'd expect 8 cubes
-                    cubecount += 1
-                    combinations += 1
-
-
-                # identify what set of cubes we represent
-                cubeset = sorted(cubeset)
-                cubesetkey = cubeset.__repr__()
-
-                # because we want an array of unique stimuli based on the orientation of
-                # the cube we keep a count of these in cubesetcount 
-                # this is then used as an index into the to level of the returned array or arrangements
-                if cubesetkey not in self.cubesets:
-                    self.cubesetcount += 1
-                    self.cubesets[cubesetkey] = self.cubesetcount
-                    thiscubeset = self.cubesetcount
-                else:
-                    thiscubeset = self.cubesets[cubesetkey]
-                
-                # we take advantage of python's ability to make strings out of data 
-                # and use the whole block as a key in a dictionary
-                blockkey = sorted(blockstrings).__repr__()
-                if blockkey in self.arrseen:
-                    continue 
-
-                # if we sort the strings we can get rid of artificially different groups 
-                self.arrseen[blockkey] = True
-
-                if thiscubeset not in self.arrangements:
-                    self.arrangements[thiscubeset] = []
-
-                # finally add to the arrangements we have for this cubeset
-                self.arrangements[thiscubeset].append(block)
-
-        logging.debug("total combinations %s", combinations)
+        return valuepermutations
 
     def build(self):
         """
@@ -167,44 +45,65 @@ class Arrangements(object):
         and for each permutation of the list of shapes per color, builds
         a set of stimuli mapped to categories rotated through each possible
         position of the dimensions
+
+        Side effect: creates self.stimuligroups data structure
         """
-        perms = {}
-        colors = []
-        permcount = 1
-        # read our original map and, for each color, generate a list of shape permutations
-        # keep track of the total number in permcount
-        for color, shapes in self.colorshapes.iteritems():
-            perms[color] = list(permutations(shapes))
-            permcount *= len(perms[color])
-            colors.append(color)
+        # in an experiment these are visual stimuli that are typically arranged around a central point
+        wedgesize = 360 / len(self.colorshapes)
+        orientations = [wedgesize * a for a in xrange(len(self.colorshapes))]
 
-        # prods represents the product of the number of permutations at a given color position
-        # in the 3 color 2 shape case this results in [4, 2, 1]
-        # this ensures that each shape permutation gets used with every other permutation
-        prods = [1 for pk in range(len(self.colorshapes))]
-        pi = 0
-        for color, shapes in perms.iteritems():
-            for pj in range(pi):
-                prods[pj] *= len(shapes)
-            pi += 1
+        # used below when determining the category of a given stimuli
+        # because we use distracters categories can map to more than one unique stimulus
+        valuetuple_product = numpy.product([len(values) for values in self.colorshapes.values()])
 
-        logging.debug("prods %s", prods)
+        self.stimuligroups = {}
 
-        # go through every permutation of shapes and create arrangements
-        # for each set of permutations construct an equivalent "colorshapes"  
-        # and generate arrangements for it, removing any duplicates
-        for i in xrange(permcount):
-            colorperm = {}
-            for j, color in enumerate(colors):
-                lp = len(perms[color])
-                # just using i % lp results in 1/2 the arrangements
-                colorperm[color] = perms[color][(i/prods[j]) % lp]
+        valuepermutationlists = self._valuepermutations().values()
+        valuetuplecount = 0
 
-            logging.debug(colorperm)
+        # its arguable that a better approach may be to iterate through permutations
+        # of categories for each set of values and that this will cover every possible
+        # mapping of axis/color group to category - however this recreates the behavior
+        # of the original mapper script
 
-            # an arrangement is a mapping of cubes to categories
-            # where each set of cubes has a specific color orientation
-            self.add_arrangement()
+        for valuetuples in product(*valuepermutationlists):
+            # only use one permutation of the last distracter axis
+            valuetuplecount += 1
+            if valuetuplecount % len(valuetuples[-1]) != 0:
+                continue
+
+            # we are building lists of lists of cubes
+            # each list covers every possible cube/category mapping
+            # the lists are determined by the orientation of the axes
+
+            for cubesetcount, angles in enumerate(permutations(orientations)):
+
+                categorymaps = []
+                for vts in permutations(valuetuples):
+
+                    # make into a list for product below
+                    valuelists = [list(valuetuple) for valuetuple in vts]
+
+                    # the last element in the valuetuples permutation is a distracter stimulus
+                    numcats = valuetuple_product / len(valuelists[-1])
+                    cattuple = [cat for cat in xrange(numcats)]
+                    categorymap = []
+                    for i, valuelist in enumerate(product(*valuelists)):
+                        cat = cattuple[i / (valuetuple_product/numcats)]
+
+                        # using only one map in an array of arrays seems to work better with various json parsers
+                        # {"color": "r", "shape": "O", "rotation": 240, "cat": "c3"}
+                        stimulus = [{
+                            "color": valuelist[j][0], 
+                            "shape": valuelist[j][1], 
+                            "rotation": angles[j], 
+                            "cat": "c{0}".format(cat)} for j in xrange(len(valuelists))]
+
+                        # print stimulus
+                        categorymap.append(stimulus)
+                    if cubesetcount not in self.stimuligroups:
+                        self.stimuligroups[cubesetcount] = []
+                    self.stimuligroups[cubesetcount].append(categorymap)
 
 def readcolorshapes(inputfile):
     with open(inputfile, "r") as sh:
@@ -219,6 +118,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-d","--debug", help="print debug output", action="store_true")
+    parser.add_argument("-v","--verbose", help="print full json string of output", action="store_true")
     parser.add_argument("inputfile", 
     help="json object mapping colors to shapes "
         "should be in form of { \"color 1\":[\"shape 1\",...],...}")
@@ -228,8 +128,19 @@ if __name__ == '__main__':
     else:
         logging.basicConfig(level=logging.ERROR)
 
-    builder = Arrangements(readcolorshapes(args.inputfile))
+    builder = StimuliGroups(readcolorshapes(args.inputfile))
     builder.build()
 
-    print json.dumps(builder.arrangements) # , indent=4)
+    if args.verbose:
+        print json.dumps(builder.stimuligroups)
+    else:
+        print "stimuli groups", len(builder.stimuligroups)
+        for i, group in builder.stimuligroups.iteritems():
+            print "group %d has length %d" % (i, len(group))
+            prevlen = -1
+            for s, stimulus in enumerate(group):
+                if prevlen > 0 and prevlen != len(stimulus):
+                    print "stimulus has different length", len(stimulus), stimulus
+                prevlen = len(stimulus)
+
 
