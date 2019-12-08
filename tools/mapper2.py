@@ -65,13 +65,19 @@ from itertools import permutations, product
 
 class StimuliGroups(object):
 
-    def __init__(self, colorshapes):
+    def load(self, inputfile):
         """
         reads in a dict of dimensions/axes (colors) and states for those dimensions (shapes)
         most of the object members are for tracking processing except arrangements
         which are what this class builds
         """
-        self.colorshapes = colorshapes
+        with open(inputfile, "r") as sh:
+            try:
+                self.colorshapes = json.load(sh)
+            except Exception as e:
+                logging.error("failed to read json data - please check the format")
+
+        return self
 
     def _valuepermutations(self):
         """
@@ -157,15 +163,6 @@ class StimuliGroups(object):
                         self.stimuligroups[cubesetcount] = []
                     self.stimuligroups[cubesetcount].append(categorymap)
 
-def readcolorshapes(inputfile):
-    with open(inputfile, "r") as sh:
-        try:
-            colorshapes = json.load(sh)
-        except Exception as e:
-            logging.error("failed to read json data - please check the format")
-            return 
-        return colorshapes
-
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -180,8 +177,8 @@ if __name__ == '__main__':
     else:
         logging.basicConfig(level=logging.ERROR)
 
-    builder = StimuliGroups(readcolorshapes(args.inputfile))
-    builder.build()
+    builder = StimuliGroups()
+    builder.load(args.inputfile).build()
 
     if args.verbose:
         print json.dumps(builder.stimuligroups)

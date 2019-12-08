@@ -179,12 +179,14 @@ def print_arrangements(dims):
 		return jsonify({"ERROR": "missing dim data"})
 
 	try:
-		import tools.mapper as m
+                from tools.mapper2 import StimuliGroups
 		if dimsfile in amap:
 			arrangements = amap[dimsfile]
 		else:
-			m.arrange_from_file(dimsfile)
-			amap[dimsfile] = m.arrangements
+                        builder = StimuliGroups()
+			builder.load(dimsfile).build()
+			amap[dimsfile] = builder.stimuligroups
+
 	except Exception as e:
 		return jsonify({"ERROR": e})
 
