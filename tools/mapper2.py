@@ -1,10 +1,62 @@
 #!/usr/bin/env python
 """
-Goal for this script is to reduce the complexity of mapper.py possibly by using recursion 
-where I'm walking through relatively small arrays with for/while loops.
-Notably the "permutations" function is hiding this to some extent but some of the loops
-where I am going through layered loops where I am trying to change the first elements
-less quickly than the later elements.
+This tool takes as input 
+- a list of groups of shapes + colors in the form of {"color": ["shape",...],...}
+
+It outputs an exhaustive inventory of categories and their related groups of symbols.
+One group of category shape mappings represents an experimental condition.
+
+The mapping of a given shape and color is assumed to be static. Although shapes
+could be repeated for colors.
+
+The "shapes" are symbols. These are combined in multiple dimensions. 
+
+One dimension is the location of the shape in a display. This is represented as a unique 
+angle in a cirle. For any given input there are a fixed number of positions that a shape 
+can be found in. For 3 for example 0 is top, 120 is right and 240 is left (for the viewer). 
+
+A second dimension is how the shape maps to a category. This is represented by an ordinal
+position for a given group of shapes represented by a color. In the first position the 
+shape is changed the least frequently, only when all the other shapes for a color have cycled 
+through their permutations. In the second position the color's shape is changed only when
+the next position's shapes have been cycled through and so on. In the last position is a color
+where every shape always maps to any given category. This color is called "irrelevant" because it 
+does not give any useful information for determining the category based on the color.
+It is possible to have multiple irrelevant features.
+
+An easier way to visualize this category mapping for 3 colors with 2 shapes is by using 
+binary numbers. The following represents one arrangement or mapping of categories to the
+colors r, b and g with shapes 0 and 1 respectively:
+
+   r  b  g
+c1 0  0  0
+c1 0  0  1
+c2 0  1  0
+c2 0  1  1
+c3 1  0  0
+c3 1  0  1
+c4 1  1  0
+c4 1  1  1
+
+We can see that, for this arrangement, r0,b0 "means" c1 and that r0,b1 "means" c2 and so on.
+
+Recall that this enumeration does not take into account where the shapes are shown in
+the display. There would be 6 arrangements of each of these groups where r, b and g would
+rotate through being in the top, left and right positions:
+ 
+1.  r     2.  r     3.  g     4.  g     5.  b     6.  b
+  b   g     g   b     r   b     b   r     g   r     r   g
+
+The number of positions and the number of columns directly relate to each group of shapes.
+The number of categories depends on the number of combinations of relevant color groups. 
+The number of conditions relating to a category relates to the size of the groups.
+We expect groups to always be the same size.
+
+It is assumed that the largest ordinality (at least) is always an irrelevant feature
+i.e. it will be represented equally in each category.
+The relevant features must uniquely map to each category. The irrelevant
+feature should never map to a specific sub-group of categories.
+
 """
 import json, sys, os, numpy
 import argparse
