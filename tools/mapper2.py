@@ -72,7 +72,7 @@ class StimuliGroups(object):
 
     def load(self, inputfile):
         """
-        reads in a dict of dimensions/axes (colors) and states for those dimensions (shapes)
+        reads in a dict of axes/dimensions (colors) and values/states for those axes (shapes)
         most of the object members are for tracking processing except arrangements
         which are what this class builds
         """
@@ -120,20 +120,15 @@ class StimuliGroups(object):
         valuetuple_product = numpy.product([len(values) for values in self.colorshapes.values()])
       
         # groups of stimuli where each group shares a particular orientation of axes
+        # this is what is used by external entities to manage experimental conditions
         self.stimuligroups = {}
       
         # swapping the order of the values (spahes) for each axis (color) helps generate more mappings 
         valuepermutationlists = self._valuepermutations().values()
-        valuetuplecount = 0
 
-        # its arguable that a better approach may be to iterate through permutations
-        # of categories for each set of values and that this will cover every possible
-        # mapping of axis/color group to category - however this recreates the behavior
-        # of the original mapper script
+        for valuetuplecount, valuetuples in enumerate(product(*valuepermutationlists)):
 
-        for valuetuples in product(*valuepermutationlists):
             # only use one permutation of the last distracter axis
-            valuetuplecount += 1
             if valuetuplecount % len(valuetuples[-1]) != 0:
                 continue
 
