@@ -57,6 +57,11 @@ i.e. it will be represented equally in each category.
 The relevant features must uniquely map to each category. The irrelevant
 feature should never map to a specific sub-group of categories.
 
+This script as well as mapper.py may not be getting every possible
+mapping of stimuli to category but does provide, on a practical level, 
+enough possibilities for an experiment (144). If we combine all the 
+permutations of categories with each we end up with 862 distinct 
+stimulus-categories even without changing the order of the axis values.
 """
 import json, sys, os, numpy
 import argparse
@@ -113,9 +118,11 @@ class StimuliGroups(object):
         # used below when determining the category of a given stimuli
         # because we use distracters categories can map to more than one unique stimulus
         valuetuple_product = numpy.product([len(values) for values in self.colorshapes.values()])
-
+      
+        # groups of stimuli where each group shares a particular orientation of axes
         self.stimuligroups = {}
-
+      
+        # swapping the order of the values (spahes) for each axis (color) helps generate more mappings 
         valuepermutationlists = self._valuepermutations().values()
         valuetuplecount = 0
 
@@ -135,7 +142,8 @@ class StimuliGroups(object):
             # the lists are determined by the orientation of the axes
 
             for cubesetcount, angles in enumerate(permutations(orientations)):
-
+                # each categorymap takes a specific orientation of axes and generates different categories for each 
+                # stimulus in an ordered way - typically only some of the axes are relevant
                 categorymaps = []
                 for vts in permutations(valuetuples):
 
@@ -157,8 +165,9 @@ class StimuliGroups(object):
                             "rotation": angles[j], 
                             "cat": "c{0}".format(cat)} for j in xrange(len(valuelists))]
 
-                        # print stimulus
+                        logging.debug("cubeset %s stimulus %s: ",cubesetcount, stimulus)
                         categorymap.append(stimulus)
+                        
                     if cubesetcount not in self.stimuligroups:
                         self.stimuligroups[cubesetcount] = []
                     self.stimuligroups[cubesetcount].append(categorymap)
