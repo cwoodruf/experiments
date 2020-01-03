@@ -179,6 +179,37 @@ def print_arrangements(dims):
 		return jsonify({"ERROR": "missing dim data"})
 
 	try:
+                import tools.mapper as m
+		if dimsfile in amap:
+			arrangements = amap[dimsfile]
+		else:
+			m.arrange_from_file(dimsfile)
+			amap[dimsfile] = m.arrangements
+
+	except Exception as e:
+		return jsonify({"ERROR": e})
+
+	return jsonify(m.arrangements.values())
+
+amap = {}
+@app.route("/arrangements2/<dims>")
+def print_arrangements2(dims):
+	"""
+	like arrangements but uses the new mapper2 script
+	which is easier to work with and faster than mapper
+	"""
+	if not check_auth_params(request):
+		return jsonify({"ERROR": "not logged in"})
+
+	if not re.match('^\d+x\d+\w*$', dims):
+		return jsonify({"ERROR": "bad dimensions"})
+
+	global amap
+	dimsfile = "tools/{0}.json".format(dims)
+	if not os.path.isfile(dimsfile):
+		return jsonify({"ERROR": "missing dim data"})
+
+	try:
                 from tools.mapper2 import StimuliGroups
 		if dimsfile in amap:
 			arrangements = amap[dimsfile]
@@ -190,7 +221,7 @@ def print_arrangements(dims):
 	except Exception as e:
 		return jsonify({"ERROR": e})
 
-	return jsonify(m.arrangements.values())
+	return jsonify(amap[dimsfile].values())
 
 @app.route("/arrangementdims")
 def arrangement_files():
