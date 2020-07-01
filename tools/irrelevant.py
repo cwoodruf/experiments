@@ -7,7 +7,7 @@ with open("map.json", "r") as f:
 	map = json.load(f)
 
 irrelevant = {}
-o = {0:"up",120:"right",240:"forward"}
+o = {0:"forward",120:"right",240:"up"}
 for i, cubeset in enumerate(map):
 	for j, categorymap in enumerate(cubeset):
 		cscm = 'cubeset={0}/catmap={1}'.format(i,j)

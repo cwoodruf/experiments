@@ -6,6 +6,10 @@ from managerutils import *
 
 app = Flask('experiments')
 
+# storage for arrangements* end points below
+amap = {}
+amap2 = {}
+
 @app.route("/favicon.ico")
 def favicon():
 	return ""
@@ -157,7 +161,6 @@ def save_data(part):
 
 	return "ERROR: content-type should be text/plain not {0}\n".format(request.headers['Content-Type'])
 
-amap = {}
 @app.route("/arrangements/<dims>")
 def print_arrangements(dims):
 	"""
@@ -180,18 +183,15 @@ def print_arrangements(dims):
 
 	try:
                 import tools.mapper as m
-		if dimsfile in amap:
-			arrangements = amap[dimsfile]
-		else:
+		if dimsfile not in amap:
 			m.arrange_from_file(dimsfile)
 			amap[dimsfile] = m.arrangements
 
 	except Exception as e:
 		return jsonify({"ERROR": e})
 
-	return jsonify(m.arrangements.values())
+	return jsonify(amap[dimsfile])
 
-amap = {}
 @app.route("/arrangements2/<dims>")
 def print_arrangements2(dims):
 	"""
@@ -211,17 +211,15 @@ def print_arrangements2(dims):
 
 	try:
                 from tools.mapper2 import StimuliGroups
-		if dimsfile in amap:
-			arrangements = amap[dimsfile]
-		else:
+		if dimsfile not in amap2:
                         builder = StimuliGroups()
 			builder.load(dimsfile).build()
-			amap[dimsfile] = builder.stimuligroups
+			amap2[dimsfile] = builder.stimuligroups
 
 	except Exception as e:
 		return jsonify({"ERROR": e})
 
-	return jsonify(amap[dimsfile].values())
+	return jsonify(amap2[dimsfile].values())
 
 @app.route("/arrangementdims")
 def arrangement_files():
