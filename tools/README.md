@@ -2,7 +2,7 @@
 
 These scripts are tools for managing experimental conditions. 
 
-* mapper.py - this uses a JSON input file to create a comprehensive list of 
+* mapper2.py/mapper.py - this uses a JSON input file to create a comprehensive list of 
   experimental conditions for category learning experiments. 
   See "arrangements" REST call in manager.py
 
